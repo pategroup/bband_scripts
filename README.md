@@ -18,9 +18,8 @@ happy to help support (or at least attempt support) of any issues
 you might have.
 
 Rights to the distribution and use of this software is licensed
-under the GPLv2 (GNU General Public License, version 2). 
-You are free to use this software, and modify as you please,
-and distribute it freely under the restrictions and allowances
-of the GPLv2. 
+under the GPLv2 (GNU General Public License, version 2.0). 
+The full provisions of the GPLv2 license can be found in the LICENSE file
+in this repository. 
 ================
 
