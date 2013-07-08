@@ -23,17 +23,14 @@ transition parameters, and outputs them as a sorted text file.
 
 3) Requirements
 This program is coded exclusively in Python 2.7. Required third-party libraries include Easygui and Numpy, 
-which are easily found online or in your favorite Linux repository.
+which are easily found online or in your favorite Linux repository. Current work with a new autofit gui
+requires PyQT 4.
 
 4) Notes about this git repository
-Currently, the only version available on this repository is the Linux version, which has been tested
-and is working in Ubuntu 12.10 LTS, 64-bit. The SPCAT/SPFIT binaries included in this repository are
-32-bit binaries, so this should work fine in 32-bit Linux, as well.
-
-Porting to Windows is easy; any call for the SPCAT/SPFIT binaries can be replaced with Windows 
-executable calls (replace "./SPCAT default" with "SPCAT.exe default"). Use of this script in
-Windows will require the use of a .bash shell, such as Cygwin, as the default directory handling is done using bash commands.
-It will NOT work using cmd.exe.
+In the /autofit root folder, you can find a Linux-compatible autofit script and SPCAT/SPFIT binaries.
+The SPX binaries were compiled using 32-bit gcc, so make sure you have valid Linux 32-bit libraries
+(for instance, ia32libs in Ubuntu) if you're running a 64-bit distribution. Otherwise the SPX binaries
+will not run. 
 
 5) Benchmarking
 Currently, the program is highly CPU-dependent, and results vary dramatically on the desktop you chose to use.
