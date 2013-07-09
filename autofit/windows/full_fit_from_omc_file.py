@@ -37,14 +37,50 @@ def var_writer_refit(A,B,C,DJ,DJK,DK,dJ,dK):#generates SPCAT input file
     fh_var.close()
 
 def par_writer_refit(A,B,C,DJ,DJK,DK,dJ,dK): #generates SPFIT par file
+
+    constant_list = ['DJ','DJK','DK','dJ','dK']
+
+    DJ_flag = 0
+    DJK_flag = 0
+    DK_flag = 0
+    dJ_flag = 0
+    dK_flag = 0
+
+    constants_to_vary = multchoicebox(msg='Choose the distortion constants to vary', title='Distortion Constant Choice',choices=constant_list)
+
+    for entry in constants_to_vary:
+        if entry == 'DJ':
+            DJ_flag = 1
+        if entry == 'DJK':
+            DJK_flag = 1
+        if entry == 'DK':
+            DK_flag = 1
+        if entry == 'dJ':
+            dJ_flag = 1
+        if entry == 'dK':
+            dK_flag = 1
+
     dA = str(0.5*float(A))  #These allow A, B, and C to vary by 50% and the distortions to vary by a factor of 10.  Too much, too little?
     dB = str(0.5*float(B))
     dC = str(0.5*float(C))
-    dDJ = str(abs(10.0*float(DJ)))
-    dDJK = str(abs(10.0*float(DJK)))
-    dDK = str(abs(10.0*float(DK)))
-    ddJ = str(abs(10.0*float(dJ)))
-    ddK = str(abs(10.0*float(dK)))
+    dDJ = str(abs(10.0*float(DJ)*DJ_flag))
+    dDJK = str(abs(10.0*float(DJK)*DJK_flag))
+    dDK = str(abs(10.0*float(DK)*DK_flag))
+    ddJ = str(abs(10.0*float(dJ)*dJ_flag))
+    ddK = str(abs(10.0*float(dK)*dK_flag))
+
+    if float(DJ) == 0 and DJ_flag == 1: # 100 MHz of uncertainty should be good enough for anybody.
+        dDJ = '1.00000000E+002'
+    if float(DJK) == 0 and DJK_flag == 1:
+        dDJK = '1.00000000E+002'
+    if float(DK) == 0 and DK_flag == 1:
+        dDK = '1.00000000E+002'
+    if float(dJ) == 0 and dJ_flag == 1:
+        ddJ = '1.00000000E+002'
+    if float(dK) == 0 and dK_flag == 1:
+        ddK = '1.00000000E+002'
+    
+
     input_file = ""
     input_file += "anisole                                         Wed Mar Thu Jun 03 17:45:45 2010\n"
     input_file += "   8  500   5    0    0.0000E+000    1.0000E+005    1.0000E+000 1.0000000000\n" # don't choose more than 497 check transitions or it will crash.
@@ -262,11 +298,23 @@ fh = numpy.loadtxt(fileopenbox(msg="Choose the experimental spectrum file in two
 (peaklist, freq_low, freq_high) = peakpicker(fh,inten_low,inten_high) # Calls slightly modified version of Cristobal's routine to pick peaks instead of forcing user to do so.
 
 best_matches = match_to_peaklist(updated_trans,peaklist) # Assigns closest experimental peak frequencies to transitions
-
-
-par_writer_refit(A_fit,B_fit,C_fit,DJ_init,DJK_init,DK_init,dJ_init,dK_init)
 lin_writer_refit(best_matches)
 
-a = subprocess.Popen("spfit refit", stdout=subprocess.PIPE, shell=False)
-a.stdout.read()#used to let SPFIT finish
+fitting_done = 0
+
+while fitting_done == 0:
+
+    par_writer_refit(A_fit,B_fit,C_fit,DJ_init,DJK_init,DK_init,dJ_init,dK_init)
+
+    a = subprocess.Popen("spfit refit", stdout=subprocess.PIPE, shell=False)
+    a.stdout.read()#used to let SPFIT finish
+
+    SPFIT_results = open("refit.fit",'r')
+    codebox(msg='SPFIT has finished.',text=SPFIT_results)
+    SPFIT_results.close()
+
+    fit_decision = buttonbox(msg='Fitting has finished. Would you like to accept the current fit or try again while allowing different distortions to vary?', choices=('Accept Current Fit','Try Again'))
+    if fit_decision == 'Accept Current Fit':
+        fitting_done = 1
+
 
