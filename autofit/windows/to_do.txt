@@ -1,0 +1,22 @@
+An incomplete list of things still to do!
+
+1) Minor bug fix:  Add trans_1, trans_2, trans_3 uncertainties to output job file (around line 944).  Also allow these to be read from input job file (around line 604).
+
+2) Implement ability to do full fit (including distortions).  
+Current plan: After main triples run has completed, allow a user to select a particular fit for further refinement.  
+One way to do this would be to grab fitted A, B, and C and read initial distortions, fitting transitions, and check transitions from the job input file.  Then run SPCAT and use the predicted values for the fitting and check transitions to find closest matches from experimental spectrum.  These can be used to generate a .lin file for SPFIT.  Run SPFIT, save results (A, B, C, distortions, RMS) to a file.  Probably wouldn't be too hard to do this in parallel on top N hits from main triples run (would need to be careful about this...).
+
+3) Search windows based on ab initio scaling of isotopes:
+
+a) Read in ab initio masses, coordinates
+b) Calculate rotational constants of NS
+c) Select atom to vary (or maybe atom type?  Like all Cs?)
+d) Calculate predicted substituted constants (or center + spread for multiple)
+e) Prompt user for experimental NS (or let them use A, B, C from initial dialog box), calculate scale factors
+f) Determine scaled substituted constants
+g) Use scaled as center for search, not sure about uncertainties (use some multiple of spread to try to find multiple isotopomers at once)
+h) Continue with rest of triples fitter routine as normal
+
+Should allow users to do something with intensities if natural abundance.  (If deliberately enriched, this would be bad if it cut out peaks due to isotopomers of interest.)
+
+4) Think about ways to effectively use intensity information more than is done at present (right now pretty much only used to help rank combinations of fitting transitions).
