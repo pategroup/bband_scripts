@@ -101,7 +101,6 @@ def par_writer_refit(A,B,C,DJ,DJK,DK,dJ,dK): #generates SPFIT par file
 def lin_writer_refit(assignment_list): #writes a lin file for use with SPFIT
 
     input_file = ""#the next part adds in the three peaks to be fit
-    fit_flag = 0.5
 
     for line in assignment_list:
     	input_file += line[1][0:2]+' '+line[1][2:4]+' '+line[1][4:6]+' '+\
@@ -172,6 +171,8 @@ def match_to_peaklist(pred_trans,peaklist):
 
     best_match_freqs=[]
 
+    threshold = float(enterbox(msg="Enter the OMC threshold in MHz.  Predicted transitions that are not at least this close to an experimental peak will not contribute to the fit."))
+
     for x in range(len(pred_trans)): #matches predicted peaks to peaks in experimental peak list <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
         weight = '0.50'
         current_peak = float(pred_trans[x][0])
@@ -199,7 +200,7 @@ def match_to_peaklist(pred_trans,peaklist):
             	temp_freq = peak_freq
             	old_omc = omc
 
-        if old_omc > 0.5: # If the best match is too far off, we don't want to have a bad line in the fit file.  0.5 MHz for now, but this should probably be a user-determined parameter.
+        if old_omc > threshold: # If the best match is too far off, we don't want to have a bad line in the fit file.  Threshold (in MHz) is a user-determined parameter.
         	weight = '0.00'
 
         best_match_freqs.append((temp_freq,pred_trans[x][1],pred_trans[x][2],weight))
@@ -297,14 +298,14 @@ updated_trans = trans_freq_refit_reader(fit_peaklist) # Finds updated predicted 
 fh = numpy.loadtxt(fileopenbox(msg="Choose the experimental spectrum file in two column format: frequency intensity")) #loads full experimental data file, not just list of peaks
 (peaklist, freq_low, freq_high) = peakpicker(fh,inten_low,inten_high) # Calls slightly modified version of Cristobal's routine to pick peaks instead of forcing user to do so.
 
-best_matches = match_to_peaklist(updated_trans,peaklist) # Assigns closest experimental peak frequencies to transitions
-lin_writer_refit(best_matches)
 
 fitting_done = 0
 
 while fitting_done == 0:
 
     par_writer_refit(A_fit,B_fit,C_fit,DJ_init,DJK_init,DK_init,dJ_init,dK_init)
+    best_matches = match_to_peaklist(updated_trans,peaklist) # Assigns closest experimental peak frequencies to transitions
+    lin_writer_refit(best_matches)
 
     a = subprocess.Popen("spfit refit", stdout=subprocess.PIPE, shell=False)
     a.stdout.read()#used to let SPFIT finish
@@ -313,7 +314,7 @@ while fitting_done == 0:
     codebox(msg='SPFIT has finished.',text=SPFIT_results)
     SPFIT_results.close()
 
-    fit_decision = buttonbox(msg='Fitting has finished. Would you like to accept the current fit or try again while allowing different distortions to vary?', choices=('Accept Current Fit','Try Again'))
+    fit_decision = buttonbox(msg='Fitting has finished. Would you like to accept the current fit or try again while changing inclusion threshold or allowing different distortions to vary?', choices=('Accept Current Fit','Try Again'))
     if fit_decision == 'Accept Current Fit':
         fitting_done = 1
 
