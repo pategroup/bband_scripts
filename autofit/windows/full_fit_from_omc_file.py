@@ -2,6 +2,7 @@ from easygui import *
 import numpy
 from collections import OrderedDict
 import subprocess
+import shutil
 
 def run_SPCAT_refit(): 
     a = subprocess.Popen("SPCAT refit", stdout=subprocess.PIPE, shell=False)
@@ -208,7 +209,6 @@ def match_to_peaklist(pred_trans,peaklist):
     return best_match_freqs
 
 
-
 f=open(fileopenbox(msg="Choose a results file (sorted_omc_cat.txt) to refine"))
 
 fits = []
@@ -225,13 +225,6 @@ for i in range(100):
     fits.append(temp)
 
 f.close()
-
-msg = "Choose a previous result for full fitting (with distortions)."
-title = "Microwave Fitting Program"
-choice = choicebox(msg,title,fits)
-A_fit = choice.split()[6]
-B_fit = choice.split()[7]
-C_fit = choice.split()[8]
 
 f2 = open(fileopenbox(msg="Choose the job input file (input_data_X.txt) from the run corresponding to the results file"))
 
@@ -287,35 +280,58 @@ for line in f2:
 f2.close()
 
 int_writer_refit(u_A,u_B,u_C, J_max=Jmax,freq=str((freq_high*.001)), temp=temp)
-var_writer_refit(A_fit,B_fit,C_fit,DJ_init,DJK_init,DK_init,dJ_init,dK_init)
-run_SPCAT_refit()
-
-fit_peaklist = refit_peaks_list + refit_check_peaks_list
-fit_peaklist = list(OrderedDict.fromkeys(fit_peaklist)) # This removes duplicates if some transitions are both check and fit transitions, which might bias SPFIT towards hitting those in particular.
-
-updated_trans = trans_freq_refit_reader(fit_peaklist) # Finds updated predicted frequencies with improved A, B, and C estimates.
 
 fh = numpy.loadtxt(fileopenbox(msg="Choose the experimental spectrum file in two column format: frequency intensity")) #loads full experimental data file, not just list of peaks
 (peaklist, freq_low, freq_high) = peakpicker(fh,inten_low,inten_high) # Calls slightly modified version of Cristobal's routine to pick peaks instead of forcing user to do so.
 
+all_fitting_done = 0
 
-fitting_done = 0
+while all_fitting_done == 0:
 
-while fitting_done == 0:
+    msg = "Choose a previous result for full fitting (with distortions)."
+    title = "Microwave Fitting Program"
+    choice = choicebox(msg,title,fits)
 
-    par_writer_refit(A_fit,B_fit,C_fit,DJ_init,DJK_init,DK_init,dJ_init,dK_init)
-    best_matches = match_to_peaklist(updated_trans,peaklist) # Assigns closest experimental peak frequencies to transitions
-    lin_writer_refit(best_matches)
+    result_choice = choice.split()[0]
+    A_fit = choice.split()[6]
+    B_fit = choice.split()[7]
+    C_fit = choice.split()[8]
 
-    a = subprocess.Popen("spfit refit", stdout=subprocess.PIPE, shell=False)
-    a.stdout.read()#used to let SPFIT finish
+    var_writer_refit(A_fit,B_fit,C_fit,DJ_init,DJK_init,DK_init,dJ_init,dK_init)
+    run_SPCAT_refit()
 
-    SPFIT_results = open("refit.fit",'r')
-    codebox(msg='SPFIT has finished.',text=SPFIT_results)
-    SPFIT_results.close()
+    fit_peaklist = refit_peaks_list + refit_check_peaks_list
+    fit_peaklist = list(OrderedDict.fromkeys(fit_peaklist)) # This removes duplicates if some transitions are both check and fit transitions, which might bias SPFIT towards hitting those in particular.
 
-    fit_decision = buttonbox(msg='Fitting has finished. Would you like to accept the current fit or try again while changing inclusion threshold or allowing different distortions to vary?', choices=('Accept Current Fit','Try Again'))
-    if fit_decision == 'Accept Current Fit':
-        fitting_done = 1
+    updated_trans = trans_freq_refit_reader(fit_peaklist) # Finds updated predicted frequencies with improved A, B, and C estimates.
+
+
+    fitting_done = 0
+
+    while fitting_done == 0:
+
+        par_writer_refit(A_fit,B_fit,C_fit,DJ_init,DJK_init,DK_init,dJ_init,dK_init)
+        best_matches = match_to_peaklist(updated_trans,peaklist) # Assigns closest experimental peak frequencies to transitions
+        lin_writer_refit(best_matches)
+
+        a = subprocess.Popen("spfit refit", stdout=subprocess.PIPE, shell=False)
+        a.stdout.read()#used to let SPFIT finish
+
+        SPFIT_results = open("refit.fit",'r')
+        codebox(msg='SPFIT has finished.',text=SPFIT_results)
+        SPFIT_results.close()
+
+        fit_decision = buttonbox(msg='Fitting has finished. Would you like to accept the current fit or try again while changing inclusion threshold or allowing different distortions to vary?', choices=('Accept Current Fit','Try Again'))
+        if fit_decision == 'Accept Current Fit':
+            fitting_done = 1
+            shutil.copyfile("refit.fit","refit%s.fit"%(str(result_choice)))
+            shutil.copyfile("refit.int","refit%s.int"%(str(result_choice)))
+            shutil.copyfile("refit.lin","refit%s.lin"%(str(result_choice)))
+            shutil.copyfile("refit.par","refit%s.par"%(str(result_choice)))
+            shutil.copyfile("refit.var","refit%s.var"%(str(result_choice)))
+
+    all_fit_decision = buttonbox(msg='Would you like to refine another previous result?', choices=('Refine Another Result','Finished!'))
+    if all_fit_decision == 'Finished!':
+        all_fitting_done = 1
 
 
