@@ -1082,7 +1082,7 @@ if __name__ == '__main__': #multiprocessing imports script as module
             top_peaks_3cut.append(entry)
 
     num_of_triples = len(trans_1_peaks)*len(trans_2_peaks)*len(trans_3_peaks) #this tells you how many entries there will be in the all_combo_list
-    #print num_of_triples
+    print num_of_triples
 
     job_file = ""
     str(top_peaks_3cut)
