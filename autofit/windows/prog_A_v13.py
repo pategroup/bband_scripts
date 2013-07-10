@@ -25,9 +25,7 @@ version 13 features (in progress):
 distortion constants.  Any number of the top 100 fits can be refined in this fashion.  The fit files thus
 generated are copied and are available for use with other programs (such as AABS).
 
--Some code & comment tidying / compaction.  Also reduced the number of times we write a par file to disk 
-from the number of triples to the number of processors, which should help performance (though this isn't 
-the main bottleneck).
+-Some code & comment tidying / compaction.
 
 version 12 features:
 
@@ -505,27 +503,29 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
     regular_counter = 0
     #error_counter = 0
 
-    input_file = ""
-    input_file += "anisole                                         Wed Mar Thu Jun 03 17:45:45 2010\n"
-    input_file += "   8  500   5    0    0.0000E+000    1.0000E+005    1.0000E+000 1.0000000000\n" # don't choose more than 497 check transitions or it will crash.
-    input_file +="a   1  1  0  50  0  1  1  1  1  -1   0\n"
-    input_file += "           10000  %s 1.0E+004 \n" % A
-    input_file += "           20000  %s 1.0E+004 \n" % B
-    input_file += "           30000  %s 1.0E+004 \n" % C
-    input_file += "             200  %s 1.0E-025 \n" % DJ
-    input_file += "            1100  %s 1.0E-025 \n" % DJK
-    input_file += "            2000  %s 1.0E-025 \n" % DK
-    input_file += "           40100  %s 1.0E-025 \n" % dJ
-    input_file += "           41000  %s 1.0E-025 \n" % dK
-    fh_par = open("default%s.par"%(str(file_num)),'w')
-    fh_par.write(input_file)
-    fh_par.close()
 
 
     for all_combo_line in all_combo_list_file:
         all_combo_line = all_combo_line.split(",")
         peaks_triple= [(all_combo_line[0],all_combo_line[1]),(all_combo_line[2],all_combo_line[3]),(all_combo_line[4],all_combo_line[5])]
         
+
+        input_file = ""
+        input_file += "anisole                                         Wed Mar Thu Jun 03 17:45:45 2010\n"
+        input_file += "   8  500   5    0    0.0000E+000    1.0000E+005    1.0000E+000 1.0000000000\n" # don't choose more than 497 check transitions or it will crash.
+        input_file +="a   1  1  0  50  0  1  1  1  1  -1   0\n"
+        input_file += "           10000  %s 1.0E+004 \n" % A
+        input_file += "           20000  %s 1.0E+004 \n" % B
+        input_file += "           30000  %s 1.0E+004 \n" % C
+        input_file += "             200  %s 1.0E-025 \n" % DJ
+        input_file += "            1100  %s 1.0E-025 \n" % DJK
+        input_file += "            2000  %s 1.0E-025 \n" % DK
+        input_file += "           40100  %s 1.0E-025 \n" % dJ
+        input_file += "           41000  %s 1.0E-025 \n" % dK
+        fh_par = open("default%s.par"%(str(file_num)),'w')
+        fh_par.write(input_file)
+        fh_par.close()
+
         input_file = ""#the next part adds in the three peaks to be fit
         input_file += trans_1[2][0:2]+' '+trans_1[2][2:4]+' '+trans_1[2][4:6]+' '+\
                       trans_1[3][0:2]+' '+trans_1[3][2:4]+' '+trans_1[3][4:6]+'                      '+peaks_triple[0][0]+' 0.50 1.0000\n' 
