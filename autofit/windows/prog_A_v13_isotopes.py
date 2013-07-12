@@ -1332,19 +1332,19 @@ if __name__ == '__main__': #multiprocessing imports script as module
             uncertainty_flag =1
 
             while uncertainty_flag ==1:            
-                if freq_uncertainty==0.0 and est_unc_flag ==1:
+                if freq_uncertainty==0.0 and est_unc_flag ==1 and isotopomer_count == 0:
                     peak_1_uncertainty = 3*trans_1_uncert
                     peak_2_uncertainty = 3*trans_2_uncert
                     peak_3_uncertainty = 3*trans_3_uncert
 
 
-                if freq_uncertainty==0.0 and user_flag ==1 and same_flag ==1:
+                if freq_uncertainty==0.0 and user_flag ==1 and same_flag ==1 and isotopomer_count == 0:
                     freq_uncertainty = float(enterbox(msg="Enter the frequency uncertainty in MHz.  The largest uncertainty from your fitting peaks is %s MHz."%(highest_uncert)))
                     peak_1_uncertainty = freq_uncertainty
                     peak_2_uncertainty = freq_uncertainty
                     peak_3_uncertainty = freq_uncertainty
 
-                if freq_uncertainty==0.0 and user_flag ==1 and same_flag ==0:
+                if freq_uncertainty==0.0 and user_flag ==1 and same_flag ==0 and isotopomer_count ==0:
                     peak_1_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 1 in MHz.  Its estimated position is %s and its uncertainty is %s MHz."%(trans_1_center,trans_1_uncert)))
                     peak_2_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 2 in MHz.  Its estimated position is %s and its uncertainty is %s MHz."%(trans_2_center,trans_2_uncert)))
                     peak_3_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 3 in MHz.  Its estimated position is %s and its uncertainty is %s MHz."%(trans_3_center,trans_3_uncert)))
@@ -1469,7 +1469,17 @@ if __name__ == '__main__': #multiprocessing imports script as module
                             re_split = clean.split("', '")
                             tuples = tuple(re_split)
                             top_peaks_clean.append(tuples)
-                    top_peaks = top_peaks_clean
+                        top_peaks = top_peaks_clean
+                        top_original_peaks = top_peaks
+
+                    else:
+                        updated_peaks = cat_reader(100000,0,flag="default")
+                        updated_top_peaks = []
+                        for entry in top_original_peaks:
+                            for peak in updated_peaks:
+                                if entry[2]==peak[2] and entry[3]==peak[3]:
+                                    updated_top_peaks.append(peak)
+                        top_peaks = updated_top_peaks
             else:
                 top_peaks = check_peaks_list
     
