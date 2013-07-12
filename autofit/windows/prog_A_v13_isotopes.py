@@ -905,17 +905,26 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
         fh_lin.close()        
         a = subprocess.Popen("SPFIT%s default%s"%(str(file_num),str(file_num)), stdout=subprocess.PIPE, shell=False)
         a.stdout.read()#used to let SPFIT finish
-        fh_fit = open("default%s.fit"%(str(file_num)))
+
         const_list = []
+
+        fh_var = open("default%s.var"%(str(file_num)))
+        for line in fh_var:
+            if line[8:13] == "10000":
+                temp_A = float(line[15:37])
+                const_list.append("%.3f" %temp_A)
+            if line[8:13] == "20000":
+                temp_B = float(line[15:37])
+                const_list.append("%.3f" %temp_B)
+            if line[8:13] == "30000":
+                temp_C = float(line[15:37])
+                const_list.append("%.3f" %temp_C)
+
+        fh_fit = open("default%s.fit"%(str(file_num)))
         file_list = []
         for line in fh_fit:
                 file_list.append(line)
-                if line[13:18] == "10000":
-                        const_list.append(line[37:53]) 
-                if line[13:18] == "20000":
-                        const_list.append(line[37:53])
-                if line[13:18] == "30000":
-                        const_list.append(line[37:53])
+
         freq_list = []
         for x in range(len(file_list)):
             if file_list[-x][11:14] == "RMS":
@@ -924,14 +933,14 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
                 freq_list.append(file_list[-x][60:71])
             if file_list[-x][40:64]=="EXP.FREQ.  -  CALC.FREQ.":
                 break
-        read_fit = (const_list[-3],const_list[-2], const_list[-1],freq_list)
+        read_fit = (const_list[0],const_list[1], const_list[2],freq_list)
         triples_counter +=1
         constants = read_fit[0:3]
         freq_17 = read_fit[3]
         freq_17.reverse()
-        A_1 = float(constants[0][:constants[0].find("(")]) #clean up the format of the rotational constants
-        B_1 = float(constants[1][:constants[1].find("(")])
-        C_1 = float(constants[2][:constants[2].find("(")])
+        A_1 = float(constants[0])
+        B_1 = float(constants[1])
+        C_1 = float(constants[2])
         omc_list = []
         
         for x in range(len(top_17)): #matches peaks in the top 17 to peaks in experimental peak list <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
