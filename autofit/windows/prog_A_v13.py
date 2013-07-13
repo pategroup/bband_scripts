@@ -7,8 +7,11 @@ import re
 import numpy
 import random
 import string
+import math
 from collections import OrderedDict
 import shutil
+from scipy.interpolate import *
+
 
 """"
 Python Triples Fitter
@@ -235,6 +238,27 @@ def lin_writer_refit(assignment_list): #writes a lin file for use with SPFIT
     fh_lin = open("refit.lin",'w')
     fh_lin.write(input_file)
     fh_lin.close()        
+
+def cubic_spline(spectrum,new_resolution): # Cubic spline of spectrum to new_resolution; used pre-peak-picking.  Assumes spectrum is already in order of increasing frequency.
+
+    x = spectrum[:,0]
+    y = spectrum[:,1]
+
+    old_resolution = (x[-1]-x[0]) / len(spectrum)
+    scale_factor = old_resolution / new_resolution
+
+    new_length = int(math.floor(scale_factor*len(spectrum)))
+
+    tck = splrep(x,y,s=0)
+    xnew = numpy.arange(x[0],x[-1],new_resolution)
+    ynew = splev(xnew,tck,der=0)
+
+    output_spectrum = numpy.zeros((new_length,2))
+    for i in range(0, new_length):
+        output_spectrum[i,0] = xnew[i]
+        output_spectrum[i,1] = ynew[i]
+
+    return output_spectrum
 
 def peakpicker(spectrum,thresh_l,thresh_h):#Code taken from Cristobal's peak-picking script; assumes spectrum is in increasing frequency order
     peaks=[]
@@ -829,8 +853,8 @@ if __name__ == '__main__': #multiprocessing imports script as module
             Jmax = const[15]
     fh = numpy.loadtxt(fileopenbox(msg="enter the spectrum file in two column format: frequency intensity")) #loads full experimental data file, not just list of peaks
 
-    (peaklist, freq_low, freq_high) = peakpicker(fh,inten_low,inten_high) # Calls slightly modified version of Cristobal's routine to pick peaks instead of forcing user to do so.
-    
+    spectrum_2kHz = cubic_spline(fh,0.002) # Interpolates experimental spectrum to a 2 kHz resolution with a cubic spline.  Gives better peak-pick values.
+    (peaklist, freq_low, freq_high) = peakpicker(spectrum_2kHz,inten_low,inten_high) # Calls slightly modified version of Cristobal's routine to pick peaks instead of forcing user to do so.
     
     for number in range(processors):
         y = subprocess.Popen("cp SPFIT.EXE %s\SPFIT%s.EXE"%(job_name,number), stdout=subprocess.PIPE, shell=True)
