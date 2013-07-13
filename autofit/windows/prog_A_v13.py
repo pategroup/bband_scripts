@@ -22,11 +22,12 @@ based on previous work by the Pate Lab at UVa
 
 Please comment any changes you make to the code here:
 
-version 13 features (in progress):
+version 13 features:
 
 -after the fitting has completed, the user can select individual results to further refine by fitting
-distortion constants.  Any number of the top 100 fits can be refined in this fashion.  The fit files thus
-generated are copied and are available for use with other programs (such as AABS).
+distortion constants and adding additional transitions.  Any number of the top 100 fits can be refined 
+in this fashion.  The fit files thus generated are copied and are available for use with other programs 
+(such as AABS).
 
 -Some code & comment tidying / compaction.
 
@@ -1284,6 +1285,8 @@ inten_high: %s \n inten_low: %s \n Temp: %s \n Jmax: %s \n freq_uncertainty: %s 
 
     while all_fitting_done == 0:
 
+        add_more_transitions = 0
+
         msg = "Choose a previous result for full fitting (with distortions)."
         title = "Microwave Fitting Program"
         choice = choicebox(msg,title,fits)
@@ -1293,14 +1296,44 @@ inten_high: %s \n inten_low: %s \n Temp: %s \n Jmax: %s \n freq_uncertainty: %s 
         B_fit = choice.split()[7]
         C_fit = choice.split()[8]
 
-        var_writer(A_fit,B_fit,C_fit,DJ,DJK,DK,dJ,dK,flag="refit")
-        run_SPCAT_refit()
-
         fit_peaklist = refit_peaks_list + refit_check_peaks_list
         fit_peaklist = list(OrderedDict.fromkeys(fit_peaklist)) # This removes duplicates if some transitions are both check and fit transitions, which might bias SPFIT towards hitting those in particular.
 
-        updated_trans = trans_freq_refit_reader(fit_peaklist) # Finds updated predicted frequencies with improved A, B, and C estimates.
+        trans_display = ""
+        for entry in fit_peaklist:
+            trans_display = trans_display + "%s \n"%(str(entry))
 
+        codebox(msg='These are the transitions that will be used in the refined fit.',text=trans_display)
+
+        more_transitions_decision = buttonbox(msg='Would you like to add additional transitions into the expanded fit?', choices=('Yes','No'))
+        if more_transitions_decision == 'Yes':
+            add_more_transitions = 1
+
+        var_writer(A_fit,B_fit,C_fit,DJ,DJK,DK,dJ,dK,flag="refit")
+        run_SPCAT_refit()
+
+        if add_more_transitions == 1:
+            extra_peaks = multchoicebox(msg='Choose the transitions to use in the new fit.  Previous fitting and scoring transitions will also be included.  Duplicates will be removed automatically.', title='Result Sorting Setup',choices=cat_reader(freq_high, freq_low,flag="refit"))
+            extra_peaks_clean = []
+            for entry in extra_peaks:
+                clean = entry[2:43]
+                re_split = clean.split("', '")
+                tuples = tuple(re_split)
+                extra_peaks_clean.append(tuples)
+            extra_peaks = extra_peaks_clean
+
+            unique_extra_peaks = []
+            for entry in extra_peaks:
+                unique = 1
+                for fit_peak in fit_peaklist:
+                    if (entry[2] == fit_peak[2]) and (entry[3] == fit_peak[3]):
+                        unique = 0
+                if unique == 1:
+                    unique_extra_peaks.append(entry)
+
+            fit_peaklist = fit_peaklist + unique_extra_peaks
+
+        updated_trans = trans_freq_refit_reader(fit_peaklist) # Finds updated predicted frequencies with improved A, B, and C estimates.
 
         fitting_done = 0
 

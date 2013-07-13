@@ -48,11 +48,12 @@ Format of structure file is from Gaussian output (below for EEO):
      16          1           0        1.384241    1.491448   -0.164781
 
 
-version 13 features (in progress):
+version 13 features:
 
 -after the fitting has completed, the user can select individual results to further refine by fitting
-distortion constants.  Any number of the top 100 fits can be refined in this fashion.  The fit files thus
-generated are copied and are available for use with other programs (such as AABS).
+distortion constants and adding additional transitions.  Any number of the top 100 fits can be refined 
+in this fashion.  The fit files thus generated are copied and are available for use with other programs 
+(such as AABS).
 
 -Some code & comment tidying / compaction.
 
@@ -1041,19 +1042,19 @@ if __name__ == '__main__': #multiprocessing imports script as module
     u_A = "0.0"#<<<<<<<<<<<<<set default value here
     u_B = "1.0"#<<<<<<<<<<<<<set default value here
     u_C = "0.0"#<<<<<<<<<<<<<set default value here
-    A = "9770.53321"#<<<<<<<<<<<<<set default value here 
-    B = "868.84539"#<<<<<<<<<<<<<set default value here
-    C = "818.51962"#<<<<<<<<<<<<<set default value here, etc...
-    DJ = "-0.0428E-003"
-    DJK = "0.794E-003"
-    DK = "-0.9260"
-    dJ = "-3.70E-006"
-    dK = "0.0"
+    A = "9769.6221"#<<<<<<<<<<<<<set default value here 
+    B = "868.84665"#<<<<<<<<<<<<<set default value here
+    C = "818.51874"#<<<<<<<<<<<<<set default value here, etc...
+    DJ = "-0.00004723"
+    DJK = "0.0008991"
+    DK = "-0.02317"
+    dJ = "-0.000005029"
+    dK = "-0.000343"
     processors = 6
     #freq_high = float(18000.0)
     #freq_low = float(6000.0)
     inten_high = float('100000.0')
-    inten_low = float('5E-005')
+    inten_low = float('4E-004')
     temperature="2"
     Jmax="20"     
         
@@ -1704,6 +1705,8 @@ inten_high: %s \n inten_low: %s \n Temp: %s \n Jmax: %s \n freq_uncertainty: %s 
 
             while all_fitting_done == 0:
 
+                add_more_transitions = 0
+
                 msg = "Choose a previous result for full fitting (with distortions)."
                 title = "Microwave Fitting Program"
                 choice = choicebox(msg,title,fits)
@@ -1713,14 +1716,44 @@ inten_high: %s \n inten_low: %s \n Temp: %s \n Jmax: %s \n freq_uncertainty: %s 
                 B_fit = choice.split()[7]
                 C_fit = choice.split()[8]
 
-                var_writer(A_fit,B_fit,C_fit,DJ,DJK,DK,dJ,dK,flag="refit")
-                run_SPCAT_refit()
-
                 fit_peaklist = refit_peaks_list + refit_check_peaks_list
                 fit_peaklist = list(OrderedDict.fromkeys(fit_peaklist)) # This removes duplicates if some transitions are both check and fit transitions, which might bias SPFIT towards hitting those in particular.
 
-                updated_trans = trans_freq_refit_reader(fit_peaklist) # Finds updated predicted frequencies with improved A, B, and C estimates.
+                trans_display = ""
+                for entry in fit_peaklist:
+                    trans_display = trans_display + "%s \n"%(str(entry))
 
+                codebox(msg='These are the transitions that will be used in the refined fit.',text=trans_display)
+
+                more_transitions_decision = buttonbox(msg='Would you like to add additional transitions into the expanded fit?', choices=('Yes','No'))
+                if more_transitions_decision == 'Yes':
+                    add_more_transitions = 1
+
+                var_writer(A_fit,B_fit,C_fit,DJ,DJK,DK,dJ,dK,flag="refit")
+                run_SPCAT_refit()
+
+                if add_more_transitions == 1:
+                    extra_peaks = multchoicebox(msg='Choose the transitions to use in the new fit.  Previous fitting and scoring transitions will also be included.  Duplicates will be removed automatically.', title='Result Sorting Setup',choices=cat_reader(freq_high, freq_low,flag="refit"))
+                    extra_peaks_clean = []
+                    for entry in extra_peaks:
+                        clean = entry[2:43]
+                        re_split = clean.split("', '")
+                        tuples = tuple(re_split)
+                        extra_peaks_clean.append(tuples)
+                    extra_peaks = extra_peaks_clean
+
+                    unique_extra_peaks = []
+                    for entry in extra_peaks:
+                        unique = 1
+                        for fit_peak in fit_peaklist:
+                            if (entry[2] == fit_peak[2]) and (entry[3] == fit_peak[3]):
+                                unique = 0
+                        if unique == 1:
+                            unique_extra_peaks.append(entry)
+
+                    fit_peaklist = fit_peaklist + unique_extra_peaks
+
+                updated_trans = trans_freq_refit_reader(fit_peaklist) # Finds updated predicted frequencies with improved A, B, and C estimates.
 
                 fitting_done = 0
 
