@@ -821,6 +821,9 @@ def intensity_filter(full_list,peaklist,inten_low,filter_level): # Intensity fil
         print "There aren't enough transitions of appropriate intensity close to predicted positions for an isotopologue search.  Check your NS constants, your scale factor, or your spectral data file."
         quit()
 
+    if filter_level == 0:
+        filtered_full_list = full_list
+
     return filtered_full_list
 
 def triple_selection(full_list,A,B,C,DJ,DJK,DK,dJ,dK,temperature,freq_high,freq_low,u_A,u_B,u_C,main_flow,flag):
