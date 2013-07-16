@@ -817,12 +817,12 @@ def intensity_filter(full_list,peaklist,inten_low,filter_level): # Intensity fil
                 filtered_full_list.append(entry)
                 break # Only need to find one; no need to continue searching through the full experimental peak list after a hit has been found.
 
+    if filter_level == 0:
+        filtered_full_list = full_list
+
     if len(filtered_full_list) < 3:
         print "There aren't enough transitions of appropriate intensity close to predicted positions for an isotopologue search.  Check your NS constants, your scale factor, or your spectral data file."
         quit()
-
-    if filter_level == 0:
-        filtered_full_list = full_list
 
     return filtered_full_list
 
