@@ -92,11 +92,19 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
     
     all_combo_list_file = open(all_combo_file)
     
-    final_omc = []
     triples_counter = 0
     output_file = ""
     regular_counter = 0
     #error_counter = 0
+
+    theor_inten_list = []
+    for x in range(len(top_17)):
+        temp_inten = 10**float(top_17[x][0])
+        theor_inten_list.append(temp_inten)
+
+    theor_inten_ratio = (max(theor_inten_list)/min(theor_inten_list))
+    theor_inten_avg = (sum(theor_inten_list)/len(theor_inten_list))
+    theor_inten_unitless_stdev = numpy.std(theor_inten_list)/theor_inten_avg
 
     for all_combo_line in all_combo_list_file:
         all_combo_line = all_combo_line.split(",")
@@ -174,15 +182,6 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
         C_1 = float(constants[2])
         omc_list = []
         
-        theor_inten_list = []
-        for x in range(len(top_17)):
-            temp_inten = 10**float(top_17[x][0])
-            theor_inten_list.append(temp_inten)
-
-        theor_inten_ratio = (max(theor_inten_list)/min(theor_inten_list))
-        theor_inten_avg = (sum(theor_inten_list)/len(theor_inten_list))
-        theor_inten_unitless_stdev = numpy.std(theor_inten_list)/theor_inten_avg
-
         for x in range(len(top_17)): #matches peaks in the top 17 to peaks in experimental peak list <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
             qnum_up = top_17[x][2]
             qnum_low = top_17[x][3]

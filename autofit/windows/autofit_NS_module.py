@@ -89,11 +89,18 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
     
     all_combo_list_file = open(all_combo_file)
     
-    final_omc = []
     triples_counter = 0
     output_file = ""
     regular_counter = 0
 
+    theor_inten_list = [] # Theoretical intensity ratios and unitless standard deviations for use in scoring fit results below.
+    for x in range(len(top_17)):
+        temp_inten = 10**float(top_17[x][0])
+        theor_inten_list.append(temp_inten)
+
+    theor_inten_ratio = (max(theor_inten_list)/min(theor_inten_list))
+    theor_inten_avg = (sum(theor_inten_list)/len(theor_inten_list))
+    theor_inten_unitless_stdev = numpy.std(theor_inten_list)/theor_inten_avg
 
     for all_combo_line in all_combo_list_file:
         all_combo_line = all_combo_line.split(",")
@@ -131,6 +138,7 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
         fh_lin = open("default%s.lin"%(str(file_num)), "w")
         fh_lin.write(input_file)
         fh_lin.close()        
+
         a = subprocess.Popen("SPFIT%s default%s"%(str(file_num),str(file_num)), stdout=subprocess.PIPE, shell=False)
         a.stdout.read()#used to let SPFIT finish
 
@@ -147,11 +155,13 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
             if line[8:13] == "30000":
                 temp_C = float(line[15:37])
                 const_list.append("%.3f" %temp_C)
+        fh_var.close()
 
         fh_fit = open("default%s.fit"%(str(file_num)))
         file_list = []
         for line in fh_fit:
                 file_list.append(line)
+        fh_fit.close()
 
         freq_list = []
         for x in range(len(file_list)):
@@ -171,18 +181,7 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
         C_1 = float(constants[2])
         omc_list = []
         
-        theor_inten_list = []
-        for x in range(len(top_17)):
-            temp_inten = 10**float(top_17[x][0])
-            theor_inten_list.append(temp_inten)
-
-        theor_inten_ratio = (max(theor_inten_list)/min(theor_inten_list))
-        theor_inten_avg = (sum(theor_inten_list)/len(theor_inten_list))
-        theor_inten_unitless_stdev = numpy.std(theor_inten_list)/theor_inten_avg
-
         for x in range(len(top_17)): #matches peaks in the top 17 to peaks in experimental peak list <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-            qnum_up = top_17[x][2]
-            qnum_low = top_17[x][3]
             real_omc = 1.0
             current_peak = float(freq_17[x])
             if current_peak>p_1 and current_peak<p_2:#conditionals to find proper portion of experimental peak list to loop through
@@ -221,7 +220,7 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
                 temp_inten = peak_inten
             if real_omc == 1.0:
                 real_omc = omc_low
-            omc_list.append((omc_low, real_omc, omc_inten))# current_peak,qnum_up,qnum_low)) you can add in this extra output, but its slower
+            omc_list.append((omc_low, real_omc, omc_inten))
         omc_avg = [float(omc) for omc, real_omc, omc_inten in omc_list]
         real_omc_avg = [float(real_omc) for omc, real_omc, omc_inten in omc_list]
         omc_inten_scoring = [float(omc_inten) for omc, real_omc, omc_inten in omc_list]
