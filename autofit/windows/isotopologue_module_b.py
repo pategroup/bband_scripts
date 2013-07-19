@@ -21,16 +21,19 @@ based on previous work by the Pate Lab at UVa
 
 Please comment any changes you make to the code here:
 
-autofit NS module:
+isotopologue module b:
 -stripping out lots of functionality (using v15 of autofit as a base) to be run from within the GUI instead of individually.
 Removed comments describing previous versions of stand-alone autofit because not all of the things described are available here.
-This should be able to do a standard fitting run on a normal species case without popping up any additional dialog boxes if
-autofit_NS is called with the appropriate arguments.  Currently isotopologue searches and fit refinements aren't included on
-completion; those will probably be separated modules later.
+This module should be able to do a triples fitting run on a single isotopologue without popping up any dialog boxes if presented
+with appropriate input parameters.  The idea behind this particular module is that the GUI would do the work to determine all the
+transitions, etc. needed for each isotopologue, and then pass each in turn here.
+
+A different module, isotopologue_module_a, serves the purpose of performing all singly-substituted searches when given a processed
+coordinates file + rotational constants, etc.  However, that module could require substantial additional user involvement because
+the initial list of fitting transitions may not work for certain isotopologues.
 
 
 """
-
 def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,file_num,A,B,C,DJ,DJK,DK,dJ,dK):
     
     all_combo_file = "all_combo_list%s.txt"%(str(file_num)) 
@@ -92,8 +95,9 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
     triples_counter = 0
     output_file = ""
     regular_counter = 0
+    #error_counter = 0
 
-    theor_inten_list = [] # Theoretical intensity ratios and unitless standard deviations for use in scoring fit results below.
+    theor_inten_list = []
     for x in range(len(top_17)):
         temp_inten = 10**float(top_17[x][0])
         theor_inten_list.append(temp_inten)
@@ -138,7 +142,6 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
         fh_lin = open("default%s.lin"%(str(file_num)), "w")
         fh_lin.write(input_file)
         fh_lin.close()        
-
         a = subprocess.Popen("SPFIT%s default%s"%(str(file_num),str(file_num)), stdout=subprocess.PIPE, shell=False)
         a.stdout.read()#used to let SPFIT finish
 
@@ -155,13 +158,11 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
             if line[8:13] == "30000":
                 temp_C = float(line[15:37])
                 const_list.append("%.3f" %temp_C)
-        fh_var.close()
 
         fh_fit = open("default%s.fit"%(str(file_num)))
         file_list = []
         for line in fh_fit:
                 file_list.append(line)
-        fh_fit.close()
 
         freq_list = []
         for x in range(len(file_list)):
@@ -182,6 +183,8 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
         omc_list = []
         
         for x in range(len(top_17)): #matches peaks in the top 17 to peaks in experimental peak list <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+            qnum_up = top_17[x][2]
+            qnum_low = top_17[x][3]
             real_omc = 1.0
             current_peak = float(freq_17[x])
             if current_peak>p_1 and current_peak<p_2:#conditionals to find proper portion of experimental peak list to loop through
@@ -203,6 +206,7 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
             elif current_peak>p_8 or current_peak<p_1:
                 peaks_section = peaklist
                 peak = p_8
+                #error_counter +=1
                 real_omc = 0.0# this is the omc if you throw out peaks that go over the edge of the spectrum
             else:
                 peaks_section = peaklist
@@ -220,7 +224,7 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
                 temp_inten = peak_inten
             if real_omc == 1.0:
                 real_omc = omc_low
-            omc_list.append((omc_low, real_omc, omc_inten))
+            omc_list.append((omc_low, real_omc, omc_inten))# current_peak,qnum_up,qnum_low)) you can add in this extra output, but its slower
         omc_avg = [float(omc) for omc, real_omc, omc_inten in omc_list]
         real_omc_avg = [float(real_omc) for omc, real_omc, omc_inten in omc_list]
         omc_inten_scoring = [float(omc_inten) for omc, real_omc, omc_inten in omc_list]
@@ -260,40 +264,57 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
                 triples_counter = 0
                 output_file = ""
     fh_final = open("final_output%s.txt"%(str(file_num)), "a")#writes separate file for each processor
+    #print 'out of %s peaks there were %s peaks that werent in the experimental spectrum'%(regular_counter, error_counter) 
     fh_final.write(output_file)
     fh_final.close()
     os.system("sort -r 'final_output%s.txt'>sorted_final_out%s.txt"%(str(file_num),str(file_num)))#sorts output by score
     
-def autofit_NS(job_name,u_A,u_B,u_C,A,B,C,DJ,DJK,DK,dJ,dK,freq_high,freq_low,inten_high,inten_low,processors,temperature,Jmax,trans_1,trans_2,trans_3,check_peaks_list,peaklist,trans_1_peaks,trans_2_peaks,trans_3_peaks):
+def isotopologue_single_fit(job_name,u_A,u_B,u_C,A,B,C,DJ,DJK,DK,dJ,dK,processors,inten_high,inten_low,temperature,Jmax,peaklist,freq_low,freq_high,trans_1,trans_2,trans_3,check_peaks_list,isotopologue,trans_1_peaks,trans_2_peaks,trans_3_peaks,isotope_ID):
 
-    a = subprocess.Popen("mkdir %s"%job_name) # Need to be able to trust job_name.  Add error handling here later / build it into the GUI.
+    main_flow = 'Isotopologues'
+
+    a = subprocess.Popen("mkdir %s"%job_name) # Need to do something here with try/except because this may or may not work depending on if we're doing a new fit from scratch or if we're continuing from a previous NS fitting run.
     a.wait()
 
+    freq_uncertainty = 0.0
+
     for number in range(processors):
-        y = subprocess.Popen("cp SPFIT.EXE %s\SPFIT%s.EXE"%(job_name,number), stdout=subprocess.PIPE, shell=True)
+        y = subprocess.Popen("cp SPFIT.EXE %s\SPFIT%s.EXE"%(job_name,number), stdout=subprocess.PIPE, shell=True) # Ditto here with try/except.
         y.stdout.read()     
 
-    y = subprocess.Popen("cp SPCAT.EXE %s\SPCAT.EXE"%(job_name), stdout=subprocess.PIPE, shell=True)
+    y = subprocess.Popen("cp SPCAT.EXE %s\SPCAT.EXE"%(job_name), stdout=subprocess.PIPE, shell=True) # Ditto here with try/except.
     y.stdout.read() 
     
     os.chdir(job_name)
     
-    num_of_triples = len(trans_1_peaks)*len(trans_2_peaks)*len(trans_3_peaks) #this tells you how many entries there will be in the all_combo_list
+    # Assume GUI gives us updated transitions with current A,B,C (based on scale factors) for our isotopologue
+    isotope_ID = isotopologue[0]
+    curr_A = isotopologue[1]
+    curr_B = isotopologue[2]
+    curr_C = isotopologue[3]
 
-    trans_1_uncert = float(trans_1[4])
-    trans_2_uncert = float(trans_2[4])
-    trans_3_uncert = float(trans_3[4])
+    a = subprocess.Popen("mkdir %s"%isotope_ID)
+    a.wait()
 
-    trans_1_center = float(trans_1[1])
-    trans_2_center = float(trans_2[1])
-    trans_3_center = float(trans_3[1])
+    for number in range(processors):
+        y = subprocess.Popen("cp SPFIT%s.EXE %s\SPFIT%s.EXE"%(number,isotope_ID,number), stdout=subprocess.PIPE, shell=True)
+        y.stdout.read()     
+
+    y = subprocess.Popen("cp SPCAT.EXE %s\SPCAT.EXE"%(isotope_ID), stdout=subprocess.PIPE, shell=True)
+    y.stdout.read() 
+
+    os.chdir(isotope_ID)
+
+    top_peaks = check_peaks_list
 
     top_peaks_3cut = []
-    for entry in check_peaks_list:
+    for entry in top_peaks:
         if (entry[2] == trans_1[2] and entry[3] == trans_1[3]) or (entry[2] == trans_2[2] and entry[3] == trans_2[3]) or (entry[2] == trans_3[2] and entry[3] == trans_3[3]):
             pass
         else:
             top_peaks_3cut.append(entry)
+
+    num_of_triples = len(trans_1_peaks)*len(trans_2_peaks)*len(trans_3_peaks) #this tells you how many entries there will be in the all_combo_list
 
     job_file = ""
     str(top_peaks_3cut)
@@ -303,13 +324,12 @@ def autofit_NS(job_name,u_A,u_B,u_C,A,B,C,DJ,DJK,DK,dJ,dK,freq_high,freq_low,int
     fitting_peaks_str = ""
     for entry in top_peaks_3cut:
         fitting_peaks_str+=str(entry)+"\n"
-            
-    job_file += "Job Name %s \n u_A: %s \n u_B: %s \n u_C: %s \n A: %s \n B: %s \n \
-    C: %s \n DJ: %s \n DJK: %s \n DK: %s \n dJ: %s \n dK: %s \n processors: %s \n freq_high: %s \n freq_low: %s \n \
-    inten_high: %s \n inten_low: %s \n Temp: %s \n Jmax: %s \n number of triples: %s \n Check peaks:\n%s \n trans_1: %s \n trans_2: %s \n trans_3: %s "%(job_name,u_A,u_B,u_C,A,B,C,DJ,DJK,DK,dJ,dK,str(processors),str(freq_high),\
-        str(freq_low),str(inten_high),str(inten_low),str(temperature),str(Jmax),str(num_of_triples),fitting_peaks_str,str(trans_1),str(trans_2),str(trans_3))
-    
-    Job_fh = open("input_data_%s.txt"%(job_name),"w")
+        
+    job_file += "Job Name %s \n Isotope ID %s \n u_A: %s \n u_B: %s \n u_C: %s \n A: %s \n B: %s \n \
+C: %s \n DJ: %s \n DJK: %s \n DK: %s \n dJ: %s \n dK: %s \n processors: %s \n freq_high: %s \n freq_low: %s \n \
+inten_high: %s \n inten_low: %s \n Temp: %s \n Jmax: %s \n freq_uncertainty: %s \n number of triples: %s \n Check peaks:\n%s \n trans_1: %s \n trans_2: %s \n trans_3: %s "%(job_name,isotope_ID,u_A,u_B,u_C,curr_A,curr_B,curr_C,DJ,DJK,DK,dJ,dK,str(processors),str(freq_high),\
+            str(freq_low),str(inten_high),str(inten_low),str(temperature),str(Jmax),str(freq_uncertainty),str(num_of_triples),fitting_peaks_str,str(trans_1),str(trans_2),str(trans_3))
+    Job_fh = open("input_data_%s_%s.txt"%(job_name,isotope_ID),"w")
     Job_fh.write(job_file) 
     Job_fh.close()
 
@@ -317,8 +337,9 @@ def autofit_NS(job_name,u_A,u_B,u_C,A,B,C,DJ,DJK,DK,dJ,dK,freq_high,freq_low,int
 
     new_list = [(len(trans_1_peaks),"trans_1_peaks"),(len(trans_2_peaks),"trans_2_peaks"),(len(trans_3_peaks),"trans_3_peaks")]
     new_list.sort()
-            
+    
     list_key = []
+
     list_a_peaks = [vars()[new_list[0][1]],new_list[0][1]]
     list_b_peaks = [vars()[new_list[1][1]],new_list[1][1]]
     list_c_peaks = vars()[new_list[2][1]]
@@ -336,15 +357,15 @@ def autofit_NS(job_name,u_A,u_B,u_C,A,B,C,DJ,DJK,DK,dJ,dK,freq_high,freq_low,int
     vars()[new_list[0][1]] = list_a_peaks[0]
     vars()[new_list[1][1]] = list_b_peaks[0]
     vars()[new_list[2][1]] = list_c_list
-
+    
+    
     processors = int(processors)
     for num in range(processors):
-
         if trans_1_peaks[-1]=="marker":
             trans_x_peaks = trans_1_peaks[num]
             trans_y_peaks = trans_2_peaks
             trans_z_peaks = trans_3_peaks
-            
+        
         if trans_2_peaks[-1]=="marker":
             trans_x_peaks = trans_1_peaks
             trans_y_peaks = trans_2_peaks[num]
@@ -354,21 +375,21 @@ def autofit_NS(job_name,u_A,u_B,u_C,A,B,C,DJ,DJK,DK,dJ,dK,freq_high,freq_low,int
             trans_x_peaks = trans_1_peaks
             trans_y_peaks = trans_2_peaks
             trans_z_peaks = trans_3_peaks[num]
-            
+        
         vars()["p%s"%str(num)] = Process(target=fit_triples, args=(trans_x_peaks,trans_y_peaks,trans_z_peaks,trans_1,trans_2,trans_3,top_peaks_3cut,peaklist,num,A,B,C,DJ,DJK,DK,dJ,dK))
 
     for num in range(processors):
         vars()["p%s"%str(num)].start()
     for num in range(processors):
         vars()["p%s"%str(num)].join()
-            
-    a = subprocess.Popen('cat sorted_final_out*.txt |sort -t "=" -k 4 -n > sorted_omc_cat.txt', shell=True)
-    a.wait()
-    
-    a = subprocess.Popen('cat sorted_final_out*.txt |sort -t "=" -k 6 -n > sorted_inten_omc_cat.txt', shell=True)
+        
+    a = subprocess.Popen('cat sorted_final_out*.txt |sort -t "=" -k 4 -n > sorted_omc_cat_%s.txt'%(isotope_ID), shell=True)
     a.wait()
 
-    f = open('sorted_inten_omc_cat.txt','r')
+    a = subprocess.Popen('cat sorted_final_out*.txt |sort -t "=" -k 6 -n > sorted_inten_omc_cat_%s.txt'%(isotope_ID), shell=True)
+    a.wait()
+
+    f = open('sorted_inten_omc_cat_%s.txt'%(isotope_ID),'r')
     fits = []
 
     for i in range(100):
@@ -388,7 +409,8 @@ def autofit_NS(job_name,u_A,u_B,u_C,A,B,C,DJ,DJK,DK,dJ,dK,freq_high,freq_low,int
     for i in (fits):
         OMC_char_buffer += i+''
 
-    f100=open('best100.txt','w')
+    f100=open('best100_%s.txt'%(isotope_ID),'w')
     f100.write(OMC_char_buffer)
     f100.close()
-    
+
+    os.chdir(os.pardir)
