@@ -304,9 +304,7 @@ def autofit_NS(job_name,u_A,u_B,u_C,A,B,C,DJ,DJK,DK,dJ,dK,freq_high,freq_low,int
     for entry in top_peaks_3cut:
         fitting_peaks_str+=str(entry)+"\n"
             
-    job_file += "Job Name %s \n u_A: %s \n u_B: %s \n u_C: %s \n A: %s \n B: %s \n \
-    C: %s \n DJ: %s \n DJK: %s \n DK: %s \n dJ: %s \n dK: %s \n processors: %s \n freq_high: %s \n freq_low: %s \n \
-    inten_high: %s \n inten_low: %s \n Temp: %s \n Jmax: %s \n number of triples: %s \n Check peaks:\n%s \n trans_1: %s \n trans_2: %s \n trans_3: %s "%(job_name,u_A,u_B,u_C,A,B,C,DJ,DJK,DK,dJ,dK,str(processors),str(freq_high),\
+    job_file += "Job Name %s \n u_A: %s \n u_B: %s \n u_C: %s \n A: %s \n B: %s \n C: %s \n DJ: %s \n DJK: %s \n DK: %s \n dJ: %s \n dK: %s \n processors: %s \n freq_high: %s \n freq_low: %s \n inten_high: %s \n inten_low: %s \n Temp: %s \n Jmax: %s \n number of triples: %s \n Check peaks:\n%s \n trans_1: %s \n trans_2: %s \n trans_3: %s "%(job_name,u_A,u_B,u_C,A,B,C,DJ,DJK,DK,dJ,dK,str(processors),str(freq_high),\
         str(freq_low),str(inten_high),str(inten_low),str(temperature),str(Jmax),str(num_of_triples),fitting_peaks_str,str(trans_1),str(trans_2),str(trans_3))
     
     Job_fh = open("input_data_%s.txt"%(job_name),"w")
@@ -318,10 +316,48 @@ def autofit_NS(job_name,u_A,u_B,u_C,A,B,C,DJ,DJK,DK,dJ,dK,freq_high,freq_low,int
     new_list = [(len(trans_1_peaks),"trans_1_peaks"),(len(trans_2_peaks),"trans_2_peaks"),(len(trans_3_peaks),"trans_3_peaks")]
     new_list.sort()
             
-    list_key = []
-    list_a_peaks = [vars()[new_list[0][1]],new_list[0][1]]
-    list_b_peaks = [vars()[new_list[1][1]],new_list[1][1]]
-    list_c_peaks = vars()[new_list[2][1]]
+    #list_key = []
+    #list_a_peaks = [globals()[new_list[0][1]],new_list[0][1]]
+    #list_b_peaks = [globals()[new_list[1][1]],new_list[1][1]]
+    #list_c_peaks = globals()[new_list[2][1]]
+
+    flag123 = 0
+    flag132 = 0
+    flag213 = 0
+    flag231 = 0
+    flag312 = 0
+    flag321 = 0
+
+    if (len(trans_1_peaks) >= len(trans_2_peaks)) and (len(trans_1_peaks) >= len(trans_3_peaks)):
+        list_a_peaks = trans_1_peaks
+        if len(trans_2_peaks) >= len(trans_3_peaks):
+            list_b_peaks = trans_2_peaks
+            list_c_peaks = trans_3_peaks
+            flag123 = 1
+        elif len(trans_3_peaks) >= len(trans_2_peaks):
+            list_b_peaks = trans_3_peaks
+            list_c_peaks = trans_2_peaks
+            flag132 = 1
+    elif (len(trans_2_peaks) >= len(trans_1_peaks)) and (len(trans_2_peaks) >= len(trans_3_peaks)):
+        list_a_peaks = trans_2_peaks
+        if len(trans_1_peaks) >= len(trans_3_peaks):
+            list_b_peaks = trans_1_peaks
+            list_c_peaks = trans_3_peaks
+            flag213 = 1
+        elif len(trans_3_peaks) >= len(trans_1_peaks):
+            list_b_peaks = trans_3_peaks
+            list_c_peaks = trans_1_peaks
+            flag231 = 1
+    elif (len(trans_3_peaks) >= len(trans_1_peaks)) and (len(trans_3_peaks) >= len(trans_2_peaks)):
+        list_a_peaks = trans_3_peaks
+        if len(trans_1_peaks) >= len(trans_2_peaks):
+            list_b_peaks = trans_1_peaks
+            list_c_peaks = trans_2_peaks
+            flag312 = 1
+        elif len(trans_2_peaks) >= len(trans_1_peaks):
+            list_b_peaks = trans_2_peaks
+            list_c_peaks = trans_1_peaks
+            flag321 = 1
 
     random.shuffle(list_c_peaks)  # Shuffle so that each processor gets a range of values for the third peak, not processor 0 getting only the lowest frequencies.  
 
@@ -333,9 +369,36 @@ def autofit_NS(job_name,u_A,u_B,u_C,A,B,C,DJ,DJK,DK,dJ,dK,freq_high,freq_low,int
         y = int(len(list_c_peaks)*((num+1)/processors))
         list_c_list.append(list_c_peaks[x:y])
     list_c_list.append("marker")
-    vars()[new_list[0][1]] = list_a_peaks[0]
-    vars()[new_list[1][1]] = list_b_peaks[0]
-    vars()[new_list[2][1]] = list_c_list
+
+
+#    globals()[new_list[0][1]] = list_a_peaks[0]
+#    globals()[new_list[1][1]] = list_b_peaks[0]
+#    globals()[new_list[2][1]] = list_c_list
+
+    if flag123 == 1:
+        trans_1_peaks = list_a_peaks
+        trans_2_peaks = list_b_peaks
+        trans_3_peaks = list_c_list
+    if flag213 == 1:
+        trans_1_peaks = list_b_peaks
+        trans_2_peaks = list_a_peaks
+        trans_3_peaks = list_c_list
+    if flag312 == 1:
+        trans_1_peaks = list_b_peaks
+        trans_2_peaks = list_c_list
+        trans_3_peaks = list_a_peaks
+    if flag132 == 1:
+        trans_1_peaks = list_a_peaks
+        trans_2_peaks = list_c_list
+        trans_3_peaks = list_b_peaks
+    if flag231 == 1:
+        trans_1_peaks = list_c_list
+        trans_2_peaks = list_a_peaks
+        trans_3_peaks = list_b_peaks
+    if flag321 == 1:
+        trans_1_peaks = list_c_list
+        trans_2_peaks = list_b_peaks
+        trans_3_peaks = list_a_peaks
 
     processors = int(processors)
     for num in range(processors):
