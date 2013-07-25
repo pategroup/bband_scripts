@@ -333,16 +333,43 @@ inten_high: %s \n inten_low: %s \n Temp: %s \n Jmax: %s \n freq_uncertainty: %s 
     Job_fh.write(job_file) 
     Job_fh.close()
 
-    new_list = []
+    flag123 = 0
+    flag132 = 0
+    flag213 = 0
+    flag231 = 0
+    flag312 = 0
+    flag321 = 0
 
-    new_list = [(len(trans_1_peaks),"trans_1_peaks"),(len(trans_2_peaks),"trans_2_peaks"),(len(trans_3_peaks),"trans_3_peaks")]
-    new_list.sort()
-    
-    list_key = []
-
-    list_a_peaks = [vars()[new_list[0][1]],new_list[0][1]]
-    list_b_peaks = [vars()[new_list[1][1]],new_list[1][1]]
-    list_c_peaks = vars()[new_list[2][1]]
+    if (len(trans_1_peaks) >= len(trans_2_peaks)) and (len(trans_1_peaks) >= len(trans_3_peaks)):
+        list_a_peaks = trans_1_peaks
+        if len(trans_2_peaks) >= len(trans_3_peaks):
+            list_b_peaks = trans_2_peaks
+            list_c_peaks = trans_3_peaks
+            flag123 = 1
+        elif len(trans_3_peaks) >= len(trans_2_peaks):
+            list_b_peaks = trans_3_peaks
+            list_c_peaks = trans_2_peaks
+            flag132 = 1
+    elif (len(trans_2_peaks) >= len(trans_1_peaks)) and (len(trans_2_peaks) >= len(trans_3_peaks)):
+        list_a_peaks = trans_2_peaks
+        if len(trans_1_peaks) >= len(trans_3_peaks):
+            list_b_peaks = trans_1_peaks
+            list_c_peaks = trans_3_peaks
+            flag213 = 1
+        elif len(trans_3_peaks) >= len(trans_1_peaks):
+            list_b_peaks = trans_3_peaks
+            list_c_peaks = trans_1_peaks
+            flag231 = 1
+    elif (len(trans_3_peaks) >= len(trans_1_peaks)) and (len(trans_3_peaks) >= len(trans_2_peaks)):
+        list_a_peaks = trans_3_peaks
+        if len(trans_1_peaks) >= len(trans_2_peaks):
+            list_b_peaks = trans_1_peaks
+            list_c_peaks = trans_2_peaks
+            flag312 = 1
+        elif len(trans_2_peaks) >= len(trans_1_peaks):
+            list_b_peaks = trans_2_peaks
+            list_c_peaks = trans_1_peaks
+            flag321 = 1
 
     random.shuffle(list_c_peaks)  # Shuffle so that each processor gets a range of values for the third peak, not processor 0 getting only the lowest frequencies.  
 
@@ -354,9 +381,31 @@ inten_high: %s \n inten_low: %s \n Temp: %s \n Jmax: %s \n freq_uncertainty: %s 
         y = int(len(list_c_peaks)*((num+1)/processors))
         list_c_list.append(list_c_peaks[x:y])
     list_c_list.append("marker")
-    vars()[new_list[0][1]] = list_a_peaks[0]
-    vars()[new_list[1][1]] = list_b_peaks[0]
-    vars()[new_list[2][1]] = list_c_list
+
+    if flag123 == 1:
+        trans_1_peaks = list_a_peaks
+        trans_2_peaks = list_b_peaks
+        trans_3_peaks = list_c_list
+    if flag213 == 1:
+        trans_1_peaks = list_b_peaks
+        trans_2_peaks = list_a_peaks
+        trans_3_peaks = list_c_list
+    if flag312 == 1:
+        trans_1_peaks = list_b_peaks
+        trans_2_peaks = list_c_list
+        trans_3_peaks = list_a_peaks
+    if flag132 == 1:
+        trans_1_peaks = list_a_peaks
+        trans_2_peaks = list_c_list
+        trans_3_peaks = list_b_peaks
+    if flag231 == 1:
+        trans_1_peaks = list_c_list
+        trans_2_peaks = list_a_peaks
+        trans_3_peaks = list_b_peaks
+    if flag321 == 1:
+        trans_1_peaks = list_c_list
+        trans_2_peaks = list_b_peaks
+        trans_3_peaks = list_a_peaks
     
     
     processors = int(processors)
