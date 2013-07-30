@@ -1225,6 +1225,28 @@ str(freq_low),str(inten_high),str(inten_low),str(temperature),str(Jmax),str(self
 	if autofit_NS_success_flag == "Success":
             self.status_text.setText("AUTOFIT RUN COMPLETED")
             self.status_text.setStyleSheet('color: blue')
+            os.chdir(job_name)
+
+            A_default = float(unicode(self.a_box.text()))
+            B_default = float(unicode(self.b_box.text()))
+            C_default = float(unicode(self.c_box.text()))
+
+            self.combo.addItem("%s %s %s (Original Constants)"%(A_default,B_default,C_default))
+
+            f = open('best100.txt','r')
+            for i in range(100):
+                r = f.readline()
+                partly_parsed = r.split()
+                score = partly_parsed[3]
+                A = partly_parsed[6]
+                B = partly_parsed[7]
+                C = partly_parsed[8]
+                RMS = partly_parsed[12]
+                #RMS = partly_parsed[19] # This is without peaks over edge
+                #RMS = partly_parsed[-1] # This is with the intensity penalty, which is how the list is sorted.
+                self.combo.addItem("%s %s %s Score=%s, RMS=%s"%(A,B,C,score,RMS))
+            f.close()
+            os.chdir(GUI_working_directory)
 	else:
             self.status_text.setText("AUTOFIT RUN FAILED")
             self.status_text.setStyleSheet('color: red')
@@ -1569,22 +1591,25 @@ str(freq_low),str(inten_high),str(inten_low),str(temperature),str(Jmax),str(self
      
     def read_results_of_autofit(self, text):
 
-        print text       
-        text = str(text)
-        try:
-       	    self.a_box.setText(text.split()[0])
-       	    self.b_box.setText(text.split()[1])
-            self.c_box.setText(text.split()[2])
-        except: pass         
+        if text=="Read Autofit Output HERE":
+            pass
+
+        else:
+            print text       
+            text = str(text)
+            try:
+       	        self.a_box.setText(text.split()[0])
+       	        self.b_box.setText(text.split()[1])
+                self.c_box.setText(text.split()[2])
+            except: pass         
 
         
-	if text=="Display Original Input Constants Constants":
-            A = '3000'
-            B = '2000'
-            C = '1000'
-            self.a_box.setText(A)
-	    self.b_box.setText(B)
-            self.c_box.setText(C)
+#            A = '3000'
+#            B = '2000'
+#            C = '1000'
+#            self.a_box.setText(A)
+#	    self.b_box.setText(B)
+#            self.c_box.setText(C)
 
         """
 	self.DJ_box.setText('0.0')
@@ -1859,15 +1884,6 @@ str(freq_low),str(inten_high),str(inten_low),str(temperature),str(Jmax),str(self
 	self.combo = QtGui.QComboBox(self)
 	
 	self.combo.addItem("Read Autofit Output HERE")
-	self.combo.addItem("Display Original Input Constants Constants")
-	self.combo.addItem("300 200 100 Score=20, RMS=0.01")
-	self.combo.addItem("3200 1300 120 Score=20, RMS=0.01")
-	self.combo.addItem("300 200 100 Score=20, RMS=0.01")
-	self.combo.addItem("3200 1300 120 Score=20, RMS=0.01")
-	self.combo.addItem("300 200 100 Score=20, RMS=0.01")
-	self.combo.addItem("3200 1300 120 Score=20, RMS=0.01")
-	self.combo.addItem("300 200 100 Score=20, RMS=0.01")
-	self.combo.addItem("3200 1300 120 Score=20, RMS=0.01")	
 	self.combo.activated[str].connect(self.read_results_of_autofit) 
 	hbox.addWidget(self.combo,9,9,9,9)
 	
