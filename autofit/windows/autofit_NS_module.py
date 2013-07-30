@@ -266,6 +266,8 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
     
 def autofit_NS(job_name,u_A,u_B,u_C,A,B,C,DJ,DJK,DK,dJ,dK,freq_high,freq_low,inten_high,inten_low,processors,temperature,Jmax,trans_1,trans_2,trans_3,check_peaks_list,peaklist,trans_1_peaks,trans_2_peaks,trans_3_peaks):
 
+    autofit_NS_success_flag = "Fail"
+
     a = subprocess.Popen("mkdir %s"%job_name) # Need to be able to trust job_name.  Add error handling here later / build it into the GUI.
     a.wait()
 
@@ -454,4 +456,11 @@ def autofit_NS(job_name,u_A,u_B,u_C,A,B,C,DJ,DJK,DK,dJ,dK,freq_high,freq_low,int
     f100=open('best100.txt','w')
     f100.write(OMC_char_buffer)
     f100.close()
+
+    os.chdir(os.pardir)
+
+    autofit_NS_success_flag = "Success"
+
+    return autofit_NS_success_flag
+
     
