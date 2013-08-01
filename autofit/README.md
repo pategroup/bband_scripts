@@ -12,7 +12,6 @@ Purpose
 -------
 This program is a brute-force triples fitter, primary for use with assigning unknown
 speices in broadband rotational spectra. The program flow is summarized as follows:<br /><br />
-
 		1) Autofit takes in a 2-column linelist, the first column being frequencies
 and the second column being intensities. <br />
         2) An input of "guess" rotational constants and parameters (such as dipole moments)
