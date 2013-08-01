@@ -57,8 +57,7 @@ functions in order to implement an autofitting routine. The function of these li
 	1) autofit_NS_module.py : provides basic autofitting routines for the purpose of finding singular species, e.g. a parent species in a set of isotopologues.<br />
 	2) isotopologue_module_b.py : provides routines for searching for isotopologues of a parent species, given the experimental constants of the parent species and its ab initio geometry 
 	(for the purposes of scaling predicted isotopologue rotational constants)<br />
-	3) refit_module.py: provides routines for taking an autofit A/B/C triple and fitting it with SPFIT (with distortion and additional lines, for instance).<br /><br />
-
+	3) refit_module.py: provides routines for taking an autofit A/B/C triple and fitting it with SPFIT (with distortion and additional lines, for instance).<br />
 - isotopologue_module_a.py: This is a stand-alone routine for fitting isotopologues given a parent species experimental constants/geometry, as with module_b. This is instead standalone;
 however, this has been integrated into the latest version of prog_A_vX.py, so there is really no reason to use this file anymore for practical use (just use prog_A_vX.py)
 
