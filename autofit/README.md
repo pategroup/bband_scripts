@@ -11,9 +11,9 @@ Steve and Ian.
 Purpose
 -------
 This program is a brute-force triples fitter, primary for use with assigning unknown
-speices in broadband rotational spectra. The program flow is summarized as follows:
+speices in broadband rotational spectra. The program flow is summarized as follows
 
-	a) Autofit takes in a 2-column linelist, the first column being frequencies
+		a) Autofit takes in a 2-column linelist, the first column being frequencies
 and the second column being intensities. 
         b) An input of "guess" rotational constants and parameters (such as dipole moments)
 are made, and this input array is passed to SPCAT to predict transition intensities and frequencies.
