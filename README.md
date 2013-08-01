@@ -19,6 +19,17 @@ authorship is commonly located in the header of each script.
 The vast majority of authorship for the Autofit scripts is attributed
 to Steve Shipman and Ian Finneran.
 
+Organization 
+------------
+This repository contains two folders. One is entitled "workup"; 
+these are primarily scripts created by various members of the Pate
+group for the purpose of common broadband data workup and other routine
+activities. You can find more info about a given script in the header
+of the script. The other is entitled "autofit". This is the most actively
+updated folder on the repository, so don't be surprised if you notice it's a 
+huge mess. There is another README for autofit in that folder with more
+information regarding the contents.
+
 Support
 -------
 Any questions regarding this repository, or the Python scripts contained within,
