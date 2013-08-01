@@ -11,18 +11,18 @@ Steve and Ian.
 Purpose
 -------
 This program is a brute-force triples fitter, primary for use with assigning unknown
-speices in broadband rotational spectra. The program flow is summarized as follows
+speices in broadband rotational spectra. The program flow is summarized as follows:<br /><br />
 
-		a) Autofit takes in a 2-column linelist, the first column being frequencies
-and the second column being intensities. 
-        b) An input of "guess" rotational constants and parameters (such as dipole moments)
-are made, and this input array is passed to SPCAT to predict transition intensities and frequencies.
-        c) From the prediction output, three transitions (the fixed transition triple) are chosen to fit,
-ideally three transitions with sufficient linear independence (this is checked in-program after the triple is selected)
-        d) An additional set of N user-chosen lines are also input, which in turn leads to each "triples" fit being an N+3 line fit;
-the use of these additional N lines are for the purpose of ranking the triples fits
-        e) Autofit then checks every set of possible transitions within the input frequency error window with the N+3 rotational 
-transition parameters, and outputs them as a sorted text file.
+		1)) Autofit takes in a 2-column linelist, the first column being frequencies
+and the second column being intensities. <br />
+        2) An input of "guess" rotational constants and parameters (such as dipole moments)
+are made, and this input array is passed to SPCAT to predict transition intensities and frequencies.<br />
+        3) From the prediction output, three transitions (the fixed transition triple) are chosen to fit,
+ideally three transitions with sufficient linear independence (this is checked in-program after the triple is selected)<br />
+        4) An additional set of N user-chosen lines are also input, which in turn leads to each "triples" fit being an N+3 line fit;
+the use of these additional N lines are for the purpose of ranking the triples fits<br />
+        5) Autofit then checks every set of possible transitions within the input frequency error window with the N+3 rotational 
+transition parameters, and outputs them as a sorted text file.<br />
 
 Requirements
 ------------
@@ -46,19 +46,19 @@ if you have any questions)
 The most recent versions, tested & working in Windows, can be found in the /windows subdirectory. There are 
 a number of files in this folder, but they can be categorized as follows:
 
-- prog_A_vX.py : This is the main, standalone Autofit program. 
+- prog_A_vX.py : This is the main, standalone Autofit program. <br />
 - fitting_GUI_Vx.py/fitting_GUI_B_Vx.py : This is an experimental graphical spectrum plotting/prediction program that is currently
 in development. It will be integrated with an autofitting routine. At the moment it is unstable but works as intended. It requires
 SPCAT and SPFIT to be in the directory with it, as well as the scripts listed below. At the moment, it only works in Windows,
-but it should be possible to port it over to Linux easily since the GUI is developed exclusively in PyQT. It does not require prog_A_vX.py to run.
+but it should be possible to port it over to Linux easily since the GUI is developed exclusively in PyQT. It does not require prog_A_vX.py to run.<br />
 
 - refit_module.py / autofit_NS_module.py / isotopologue_module_b.py : These are stripped down autofitting modules for use in integrating into another
 program, such as the fitting GUI mentioned above. They do not work alone as intended in prog_A_vX.py; rather they offer another program a library of
-functions in order to implement an autofitting routine. The function of these libraries are as follows:
-	1) autofit_NS_module.py : provides basic autofitting routines for the purpose of finding singular species, e.g. a parent species in a set of isotopologues.
+functions in order to implement an autofitting routine. The function of these libraries are as follows:<br />
+	1) autofit_NS_module.py : provides basic autofitting routines for the purpose of finding singular species, e.g. a parent species in a set of isotopologues.<br />
 	2) isotopologue_module_b.py : provides routines for searching for isotopologues of a parent species, given the experimental constants of the parent species and its ab initio geometry 
-	(for the purposes of scaling predicted isotopologue rotational constants)
-	3) refit_module.py: provides routines for taking an autofit A/B/C triple and fitting it with SPFIT (with distortion and additional lines, for instance).
+	(for the purposes of scaling predicted isotopologue rotational constants)<br />
+	3) refit_module.py: provides routines for taking an autofit A/B/C triple and fitting it with SPFIT (with distortion and additional lines, for instance).<br /><br />
 
 - isotopologue_module_a.py: This is a stand-alone routine for fitting isotopologues given a parent species experimental constants/geometry, as with module_b. This is instead standalone;
 however, this has been integrated into the latest version of prog_A_vX.py, so there is really no reason to use this file anymore for practical use (just use prog_A_vX.py)
