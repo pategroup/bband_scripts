@@ -1,0 +1,212 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Introduction to Autofit &mdash; autofit 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="autofit 1.0 documentation" href="index.html" />
+    <link rel="next" title="Getting Started with Autofit" href="gettingstarted.html" />
+    <link rel="prev" title="Autofit, an automated triples fitting program for broadband rotational spectroscopy" href="index.html" />
+<link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Neuton&amp;subset=latin" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Nobile:regular,italic,bold,bolditalic&amp;subset=latin" type="text/css" media="screen" charset="utf-8" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+  </head>
+  <body>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="gettingstarted.html" title="Getting Started with Autofit"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Autofit, an automated triples fitting program for broadband rotational spectroscopy"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">autofit 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="introduction-to-autofit">
+<h1>Introduction to Autofit<a class="headerlink" href="#introduction-to-autofit" title="Permalink to this headline">¶</a></h1>
+<p>Welcome to the Autofit documentation!</p>
+<div class="section" id="authorship">
+<h2>Authorship<a class="headerlink" href="#authorship" title="Permalink to this headline">¶</a></h2>
+<p>The original implementation and idea for Autofit was developed in the lab of Brooks Pate at the University of Virginia. However,
+the modern Python-based implementation has primarily been developed by Steve Shipman, of New College of Florida, and
+Ian Finneran, a former undergraduate student of Steve and now a graduate student in Geoff Blake&#8217;s group at Caltech.
+General maintenance, support, marketing, etc &#8211; as well as tender loving care outside of programming &#8211; has been primarily done by the Pate group at UVa.</p>
+</div>
+<div class="section" id="motivation">
+<h2>Motivation<a class="headerlink" href="#motivation" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="scientific">
+<h3>Scientific<a class="headerlink" href="#scientific" title="Permalink to this headline">¶</a></h3>
+<p>In short, Autofit is an automated triples fitting tool for the purpose of identifying unknown target spectra in a broadband rotational spectrum.
+Since the implementation of high speed digital electronics has become routine in broadband microwave spectroscopy, new tools were required in
+order to decouple spectra of low abundance molecules out of broadband scans that are increasingly becoming more sensitive and spectrally dense.
+Some of the most dense spectra taken in the Pate lab have dynamic ranges of over 20000:1, and with line densities of over 1 MHz<sup>-1</sup>. These kinds of
+line densities make it unfeasable to manually fit spectra using traditional visual cues, especially for species such as isotopologues which are often
+components of the dense &#8220;weeds&#8221; seen in deep-averaged rotational spectra.</p>
+</div>
+<div class="section" id="computational">
+<h3>Computational<a class="headerlink" href="#computational" title="Permalink to this headline">¶</a></h3>
+<p>Originally, Autofit was developed as a script for PTC&#8217;s Mathcad. Although Mathcad is easy to use, it is sadly proprietary, not used by the majority
+of physical chemists, and is rather unstable (and extremely slow!) for computation with large data sets. Python is a natural choice for applications such as autofit,
+since it is well supported by the scientific community, it is open source (and the majority of useful scientific and mathematical libraries are as well), it is lightweight
+and completely portable, and the language itself has a remarkably small learning curve for scientists with respect to other languages such as FORTRAN and C. Additionally,
+it is relatively easy to scale computations across multiple CPUs or CPU cores using Python, which is a necessity for making Autofit an efficient tool.</p>
+</div>
+</div>
+<div class="section" id="what-autofit-can-do-for-you">
+<h2>What Autofit Can Do for You!<a class="headerlink" href="#what-autofit-can-do-for-you" title="Permalink to this headline">¶</a></h2>
+<p>As stated in the motivation, Autofit is an automated triples fitter for broadband rotational spectra. As a program, it merely serves as a generator and processor of input and output files
+for Herb Pickett&#8217;s legendary SPCAT/SPFIT program package, which can be found  <a class="reference external" href="http://spec.jpl.nasa.gov/">on the JPL website.</a>
+Since Autofit is built exclusively in Python, the only functional requirements are compatible binaries for SPCAT and SPFIT and a Python interpreter for whatever platform you want to run Autofit on.
+Here is, in a jiffy, what Autofit does:</p>
+<ul>
+<li><p class="first">Given a set of ab-initio or guess rotational constants and an experimental spectrum, Autofit will fit a A/B/C rotational constant triplet to every possible set of 3 lines possible within an error window.</p>
+<blockquote>
+<div><ul class="simple">
+<li>For example, if you want to fit the 2<sub>02</sub>- 1<sub>01</sub>transition, which is predicted to be at 10 GHz, with an error window of 300 MHz, Autofit will check every experimental line between 9.7 and 10.3 GHz.</li>
+<li>In this example (and in general), Autofit will do this for the three transitions you choose, and then output a sorted list of A/B/C triples ranked by goodness of fit (which is calculated by fitting an additional set of transitions to build up an effective fit)</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p class="first">For a given A/B/C triple output by Autofit, Autofit can take that triple and refine the fit with distortion and/or additional transitions in the fit.</p>
+</li>
+<li><p class="first">For a given set of experimental rotational constants for a parent species, and an ab-initio structure for the parent species, Autofit can search for isotopologues separately and automatically by scaling predicted constants via the ab initio geometry.</p>
+</li>
+<li><p class="first">In principle, Autofit can scale to an arbitrary number of CPUs or cores. It does this by dividing the total list of triples to check into N segments, where N is the number of CPUs/cores being used in the calculation.</p>
+<blockquote>
+<div><ul class="simple">
+<li>As it stands, Autofit can fit around 35-50 triples a second per core on a typical last-generation Intel CPU (Ivy Bridge). So for a 4-core (8 core via Hyperthreading) system, approximately 250 triples a second can be fit. A typical Autofit run of 10 million triples therefore takes around 10-12 hours.</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p class="first">Although this is currently in development, Autofit will soon be integrated into a GUI where choosing transitions to check for Autofit and analyzing Autofit results will be possible, therefore removing the requirement of using an additional program (such as JB95 or PGOPHER) for checking Autofit results by hand.</p>
+</li>
+</ul>
+</div>
+<div class="section" id="what-autofit-can-t-do-for-you">
+<h2>What Autofit Can&#8217;t Do for You!<a class="headerlink" href="#what-autofit-can-t-do-for-you" title="Permalink to this headline">¶</a></h2>
+<p>Rotational spectroscopists, wipe the sweat off your brow &#8211; Autofit is not here to make your job obsolete. Rather, Autofit has been designed to speed up the purely mechanical (and often mind-numbingly painful) process of fitting spectra.
+For instance:</p>
+<ul class="simple">
+<li>Autofit does not fit nuclear quadrupole hyperfine. If you run Autofit on a molecule, such as one containing nitrogen, you will often find multiple fits that are roughly close to each other in RMS error. This is due to the fact that Autofit finds the same rigid rotor spectrum, but fits to different resolved hyperfine components.</li>
+<li>Internal rotation is not considered at all. For fitting a rigid rotor spectrum with Autofit, you will usually get at least two fits: one with the A state fit, which will fit to the rigid rotor model closely, and a higher energy E state fit. More than likely you will get fits where A and E transitions are mixed, albeit at a higher RMS error.</li>
+<li>Autofit does NOT fit distortion! You can enter in distortion at the beginning for SPCAT to consider, but it will be treated as a static variable in the predictions. There is functionality to take an Autofit result and then go and fit distortion by adding additional lines to the fit, but this is effectively an automated tool for doing &#8220;final&#8221; fits in SPFIT. None of it is done automatically during the autofitting process.</li>
+</ul>
+<p>And most importantly, though this point is becoming less important as we continue to refine the program to make it easier to use:</p>
+<ul class="simple">
+<li>Autofit does not making fitting rigid rotor spectra a mindless activity. Some knowledge, or at least common sense, about what rotational transitions are good choices as triples fitting parameters is required. Mindlessly choosing transitions from the predicted list will almost never give you good results. In the Pate group, we have a saying that has become true over and over again: <strong>Autofit does not fail you, only you fail Autofit!</strong></li>
+</ul>
+<p>However, fear not &#8211; there are a number of helpful tips and tricks available in this documentation that will ease your Autofit journey. For a trained rotational spectroscopist, use your best judgement &#8211; what combinations of lines do you typically use to get a good rough fit on A, B and C?</p>
+</div>
+<div class="section" id="licensing">
+<h2>Licensing<a class="headerlink" href="#licensing" title="Permalink to this headline">¶</a></h2>
+<p>As it stands currently (as of August 2013), Autofit is licensed with the GPLv2 license. This is temporary, as it is likely we will move to a more liberal license
+in the future. You can find the actual terms of the GPLv2 license <a class="reference external" href="http://www.gnu.org/licenses/gpl-2.0.html">here.</a></p>
+</div>
+<div class="section" id="support">
+<h2>Support<a class="headerlink" href="#support" title="Permalink to this headline">¶</a></h2>
+<p>Currently, maintenance and support is managed by Nathan Seifert of the Pate group. He is happy to take any questions you might have on the program, both in terms
+of scientific and computational support. You can contact him at <strong>nas3xf[at]virginia[dot]edu</strong>.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Introduction to Autofit</a><ul>
+<li><a class="reference internal" href="#authorship">Authorship</a></li>
+<li><a class="reference internal" href="#motivation">Motivation</a><ul>
+<li><a class="reference internal" href="#scientific">Scientific</a></li>
+<li><a class="reference internal" href="#computational">Computational</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#what-autofit-can-do-for-you">What Autofit Can Do for You!</a></li>
+<li><a class="reference internal" href="#what-autofit-can-t-do-for-you">What Autofit Can&#8217;t Do for You!</a></li>
+<li><a class="reference internal" href="#licensing">Licensing</a></li>
+<li><a class="reference internal" href="#support">Support</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Autofit, an automated triples fitting program for broadband rotational spectroscopy</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="gettingstarted.html"
+                        title="next chapter">Getting Started with Autofit</a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="gettingstarted.html" title="Getting Started with Autofit"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Autofit, an automated triples fitting program for broadband rotational spectroscopy"
+             >previous</a> |</li>
+        <li><a href="index.html">autofit 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Nathan Seifert.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>
