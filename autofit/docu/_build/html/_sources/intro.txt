@@ -1,3 +1,5 @@
+.. _intro:
+
 Introduction to Autofit
 ***********************
 
@@ -57,12 +59,12 @@ Rotational spectroscopists, wipe the sweat off your brow -- Autofit is not here 
 For instance:
 
 * Autofit does not fit nuclear quadrupole hyperfine. If you run Autofit on a molecule, such as one containing nitrogen, you will often find multiple fits that are roughly close to each other in RMS error. This is due to the fact that Autofit finds the same rigid rotor spectrum, but fits to different resolved hyperfine components.
-* Internal rotation is not considered at all. For fitting a rigid rotor spectrum with Autofit, you will usually get at least two fits: one with the A state fit, which will fit to the rigid rotor model closely, and a higher energy E state fit. More than likely you will get fits where A and E transitions are mixed, albeit at a higher RMS error.
+* Internal rotation is not considered at all. For fitting a rigid rotor spectrum with Autofit, you will usually get at least two fits: one with the A state fit, which will fit to the rigid rotor model closely, and a higher energy E state fit. More than likely you will also get fits where A and E transitions are mixed, albeit at a higher RMS error.
 * Autofit does NOT fit distortion! You can enter in distortion at the beginning for SPCAT to consider, but it will be treated as a static variable in the predictions. There is functionality to take an Autofit result and then go and fit distortion by adding additional lines to the fit, but this is effectively an automated tool for doing "final" fits in SPFIT. None of it is done automatically during the autofitting process.
 
 And most importantly, though this point is becoming less important as we continue to refine the program to make it easier to use:
 
-* Autofit does not making fitting rigid rotor spectra a mindless activity. Some knowledge, or at least common sense, about what rotational transitions are good choices as triples fitting parameters is required. Mindlessly choosing transitions from the predicted list will almost never give you good results. In the Pate group, we have a saying that has become true over and over again: **Autofit does not fail you, only you fail Autofit!**
+* Autofit does not making fitting rigid rotor spectra a mindless activity. Some knowledge, or at least common sense, about what rotational transitions are good choices as triples fitting parameters is required. Mindlessly choosing transitions from the predicted list will almost never give you good results. In the Pate group, we have a saying that has become true over and over again: **Autofit never fails you; only you fail Autofit!**
 
 However, fear not -- there are a number of helpful tips and tricks available in this documentation that will ease your Autofit journey. For a trained rotational spectroscopist, use your best judgement -- what combinations of lines do you typically use to get a good rough fit on A, B and C?
 
