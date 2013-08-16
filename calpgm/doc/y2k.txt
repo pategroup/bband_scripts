@@ -1,0 +1,10 @@
+This software suite is a 'c' console application that has been compiled and 
+tested under a Y2K compliant version of  Microsoft Visual C for Windows 98 
+and under gnu gcc compilers for Windows 95/98, LINUX and UNIX.
+
+Dates and times are not used in the calculation, but system routines are 
+called to provide date and time information on several output files.  
+The dates and times are for informational purposes and do not interfere 
+with the operation of the program.  The accuracy of this date and time 
+information are dependent on the Y2K compliance of the system on which the 
+software is compiled or run.
