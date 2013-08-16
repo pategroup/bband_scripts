@@ -21,14 +21,19 @@ to Steve Shipman and Ian Finneran.
 
 Organization 
 ------------
-This repository contains two folders. One is entitled "workup"; 
-these are primarily scripts created by various members of the Pate
+This repository contains three folders. 
+
+One is entitled "workup"; these are primarily scripts created by various members of the Pate
 group for the purpose of common broadband data workup and other routine
 activities. You can find more info about a given script in the header
-of the script. The other is entitled "autofit". This is the most actively
+of the script. 
+
+The second is entitled "autofit". This is the most actively
 updated folder on the repository, so don't be surprised if you notice it's a 
 huge mess. There is another README for autofit in that folder with more
 information regarding the contents.
+
+The third is entitled "calpgm". This is a mirror of the CALPGM source code, developed by Herb Pickett, that is available on JPL's website. No modifications have been made with respect to the versions available on the JPL website. For more information, read the README in the "calpgm" directory.
 
 Support
 -------
