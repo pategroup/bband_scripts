@@ -14,7 +14,9 @@ Licensing
 These source files are used for educational, non-commercial use only. 
 Since we provide the binaries for SPCAT and SPFIT along with Autofit (i686/x86-64 for Linux, and 32-bit for Windows), it is naturally appropriate under such open source licenses as GPLv2 to also provide the source code.
 
- No modifications to the SPCAT/SPFIT code have been made, and the source files provided in this folder are exact copies of those found on the JPL website. 
+It should be noted that this source code is not, as far as knowledge of the maintainers of this repository, that the CALPGM code is NOT licensed under GPLv2, as Autofit is currently! You must contact the maintainers at JPL if you are interested in modifying the code for your own purposes. 
+
+No modifications to the SPCAT/SPFIT code have been made, and the source files provided in this folder are exact copies of those found on the JPL website. 
 
 Modification of the CALPGM code is not authorizable by the maintainers of this Github repository, and any interested party should contact the authors/maintainers of this code at JPL if you are interested in modifying or using this code in other contexts besides non-commercial use with Autofit or any of the scripts provided here.
 
