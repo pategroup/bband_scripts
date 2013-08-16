@@ -1,0 +1,155 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Helpful Tips and Notes &mdash; autofit 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="autofit 1.0 documentation" href="index.html" />
+    <link rel="prev" title="Tutorial: 1,3-Disilacyclopentane" href="tutorial.html" />
+<link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Neuton&amp;subset=latin" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Nobile:regular,italic,bold,bolditalic&amp;subset=latin" type="text/css" media="screen" charset="utf-8" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+  </head>
+  <body>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="tutorial.html" title="Tutorial: 1,3-Disilacyclopentane"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">autofit 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="helpful-tips-and-notes">
+<span id="tips"></span><h1>Helpful Tips and Notes<a class="headerlink" href="#helpful-tips-and-notes" title="Permalink to this headline">¶</a></h1>
+<p>Want to learn to use Autofit like the pros? Here are some tips and things to keep in mind!</p>
+<p>In general, these tips make the assumption that the target spectrum you&#8217;re trying to assign actually exists in the broadband data. This is perhaps an obvious point, since if there&#8217;s no spectrum to find/fit, any set of transitions you pick for Autofit to use will be of poor quality!</p>
+<div class="section" id="the-art-of-picking-a-triple-expanded-edition">
+<h2>1. The Art of Picking a Triple, Expanded Edition<a class="headerlink" href="#the-art-of-picking-a-triple-expanded-edition" title="Permalink to this headline">¶</a></h2>
+<p>By far one of the most important and crucial aspects to a successful Autofit search is a good choice of transitions for the fit triple. Even in the mindset of fitting spectra manually, this is not a stretch to understand. When you try to fit an experimental spectrum in a
+graphical fitter, say <a class="reference external" href="http://www.nist.gov/pml/div686/sources_detectors/jb95.cfm">JB95</a>, typically you will pick three good transitions and fit them to a set of 3 experimental lines close to the predicted frequencies. Having 3 parameters (A, B, C) and three fit lines, we get
+some (hopefully) unique solution where A, B and C are fit with 0 RMS error. Then, you repredict with these new values for the rotational constants and see if additional lines can be added to the fit while dramatically decreasing the standard error on the constants and maintaining
+a good overall RMS fit error.</p>
+<p>This is exactly what Autofit does, except it does it 250 times a second instead of maybe once or twice every couple of minutes (assuming a typical rotational spectroscopist using JB95 or equivalent). But Autofit has a fundamental limitation in that it can
+only check a single set of predicted transitions per run (whereas the traditional spectroscopist can choose whatever transitions he pleases each time he tries to fit the spectrum), so it&#8217;s extremely important that the choice you make is a good choice.</p>
+<p>There are primarily two factors to be concerned about when you choose a set of three fit transitions:</p>
+<blockquote>
+<div><ul class="simple">
+<li>Intensity: Are the transitions you chose guaranteed to be resolvable in your spectrum?</li>
+<li>Linear dependence: Will the transitions you chose generate a set of rotational constants with low standard errors?</li>
+</ul>
+</div></blockquote>
+<p>It is also important to consider the viability additional transitions (we&#8217;ll call them &#8220;check&#8221; transitions from now on) you add for Autofit to check for each triple it fits. Since Autofit will fit three experimental lines to A, B and C with zero RMS error, the quality of the fits in the final Autofit output are dependent completely on good forward predictions (and good intensities) of the check transitions. But it&#8217;s not hard to notice that the quality of the check transitions is coupled to the quality of the fit triple.</p>
+<p>For example, if you&#8217;re fitting a spectrum that is dependent on all three constants (e.g. a B-type spectrum), picking a fit triple that has good dependence on B &amp; C but not A will make the check transitions, which will likely be dependent on A in some quantity, very difficult to get good forward predictions for. This is due to the fact that the standard error on the A constant in this example is high, so the uncertainty on the location of the check transitions with a dependence on A will also be high. Therefore, in this situation the final fits output by Autofit will be generally poor in quality since the check transitions are either not assigned or assigned to experimental lines with high OMC errors (observed-minus-calculated errors).</p>
+<p>Autofit helps you to pick a good fit triple by outputting a number that describes the linear dependence of the fit transitions on A, B and C in a small dialog box that looks like this:</p>
+<img alt="_images/fig9.png" class="align-center" src="_images/fig9.png" />
+<p>This value is a signed real number, and typically a good fit triple will have a dependence quantity (absolute value) higher than 1. Maximizing this value is optimal, and in fact when you choose to have Autofit select fit triples automatically it will sort them and score them in decreasing linear dependence.
+However, since the dependence on A, B &amp; C typically increases as you increase in K in a specific J ladder, often the best transitions for A, B &amp; C are the weakest in experimental intensity (especially in a cold molecular beam).</p>
+<p>Therefore, it&#8217;s important to balance this dependence with intensity. Withlarge systems, where J is typically high relative to &#8220;typical molecules&#8221;, this isn&#8217;t a huge problem. But for small complexes and species it can be difficult to find this balance without sacrificing too much dependence on all three rotational constants.</p>
+<p>Here are some helpful tips for picking good fit triples:</p>
+<blockquote>
+<div><ul class="simple">
+<li><strong>A-type spectra</strong>: For the most part, you&#8217;re going to have a lot of difficulty finding a set of transitions that are linearly dependent on all three constants. K<sub>a</sub> = 0 (we&#8217;ll call them K0 transitions from here on out) transitions are proportional to (B+C) and the spacing between the K0s and the K<sub>a</sub> = 1 transitions (K1) is proportional to (B-C).   However, there is some slight A dependence in the higher Ks, so if you have the intensity for them fitting at least a K<sub>a</sub> = 2 transition (K2) will help, or both K2s in order to get A out of the splitting. However, if you don&#8217;t care too much about A (e.g. if it&#8217;s a pure A-type spectrum), then a good fit triple would be a K0 and K2 of a J, and then a K1 of another J &#8211; or some permutation of Ks and Js. It&#8217;s best to get some diversity in J, so don&#8217;t stick to just fitting a K0, K1 and K2 of a single J.</li>
+<li><strong>B-type spectra</strong>: You pretty much get instant dependence on A, B and C no matter what transitions you pick. The spacing between two J&#8217;<sub>0J&#8217;</sub> - J&#8217;&#8216;<sub>1J&#8217;</sub> transitions is roughly proportional to 2B, and the position of the J&#8217;<sub>1J&#8217;</sub> - J&#8217;&#8216;<sub>0J&#8217;</sub> transition is roughly proportional to A and C, so with two K&#8217;<sub>a</sub> = 0 and a K&#8217;<sub>a</sub> = 1 transition you&#8217;ve got A, B and C. You can do better with higher K&#8217;<sub>a</sub> transitions, but with most systems you will get a good balance of intensity and constant dependence using the suggestion above. Note that splittings between the b-type K&#8217;<sub>a</sub> = 2 asymmetry doublets also get you dependence on all three constants.</li>
+<li><strong>C-type spectra</strong>: Since the 1-0 of a C-type spectrum occurs at (A+B), you get instant dependence on these two with intense C-type transitions such as the J&#8217;<sub>1,J&#8217;-1</sub> - J&#8217;&#8216;<sub>0J&#8217;&#8216;</sub> series. Getting dependence on C, however, can be difficult (like A with A-type spectra), but finding an intense assymetry doublet could ease the process in finding C dependence.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="picking-check-transitions">
+<h2>2. Picking Check Transitions<a class="headerlink" href="#picking-check-transitions" title="Permalink to this headline">¶</a></h2>
+<p>As stated in the previous section, the quality of check transitions is often ultimately dependent on the quality of your fit triple. If your fit set ultimately leads to fits where it&#8217;s fitting the check set to noise, then it&#8217;s likely a problem with your fit triple. But despite this, there are some things to keep in mind that can improve your experience.</p>
+<blockquote>
+<div><ul class="simple">
+<li>This is an obvious point, but make sure the check transitions you pick are intense enough to be resolvable! This can be easily checked; if you have a sense of what intensity your fit transitions are likely in the experimental spectrum, then how much weaker can your check transitions be without hitting the lower intensity cutoff?</li>
+<li>In mixed-type spectra, make sure your check transitions have similar dependence to the constants as your fit triple. For instance, if your fit triple contains just some low-K<sub>a</sub>: A-type transitions, it&#8217;s probably not a great idea to check B-type transitions that have a strong dependence on A. Clearly the opposite is probably a better situation, with fit B-type transitions and checks on the A-types.</li>
+<li>There&#8217;s nothing wrong with checking similar transitions as those in the fit triple &#8211; quantum number diversity doesn&#8217;t matter too much with the check transitions. For example, if you&#8217;re fitting the 4<sub>04</sub> - 3<sub>03</sub> and the 4<sub>14</sub> - 3<sub>13</sub> and maybe a K2 of J = 3, then it doesn&#8217;t hurt to check the K0 and K1s of J = 3 and J = 5 either.</li>
+</ul>
+</div></blockquote>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Helpful Tips and Notes</a><ul>
+<li><a class="reference internal" href="#the-art-of-picking-a-triple-expanded-edition">1. The Art of Picking a Triple, Expanded Edition</a></li>
+<li><a class="reference internal" href="#picking-check-transitions">2. Picking Check Transitions</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="tutorial.html"
+                        title="previous chapter">Tutorial: 1,3-Disilacyclopentane</a></p>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="tutorial.html" title="Tutorial: 1,3-Disilacyclopentane"
+             >previous</a> |</li>
+        <li><a href="index.html">autofit 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Nathan Seifert.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

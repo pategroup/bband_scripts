@@ -1964,7 +1964,9 @@ if __name__ == '__main__': #multiprocessing imports script as module
         elif continue_decision == 'Yes':
             main_flow = 'Isotopologues'
             msg = "Enter constants for the normal species isotopologue in MHz. If left blank, they will be set to default values (in parentheses). The inputs will be sent directly to SPCAT, so remember to input -DJ, -DJK, etc. "
-
+            title = "Isotopologue fitter"
+            fieldNames = ["a dipole (%s)"%(u_A),"b dipole (%s)"%(u_B),"c dipole (%s)"%(u_C),"A (%s MHz)"%(A),"B (%s MHz)"%(B),"C (%s MHz)"%(C),"-DJ (%s MHz)"%(DJ),"-DJK (%s MHz)"%(DJK),"-DK (%s MHz)"%(DK),"-dJ (%s MHz)"%(dJ),"-dK (%s MHz)"%(dK),\
+                         "number of processors (%s)"%(processors),"upper intensity limit on exp spectrum (%s)"%(inten_high),"lower intensity limit on exp spectrum(%s)"%(inten_low),"temperature (%sK)"%(temperature), "Jmax (%s)"%(Jmax)]
             const = [] 
             const = multenterbox(msg,title, fieldNames) # gui for grabbing data
          
