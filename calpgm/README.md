@@ -11,7 +11,7 @@ H. M. Pickett, J. Mol. Spectrosc., 148, 371 (1991).
 
 Licensing
 ---------
-These source files are used for educational, non-commercial use only. 
+These source files are used for educational, non-commercial use only! 
 Since we provide the binaries for SPCAT and SPFIT along with Autofit (i686/x86-64 for Linux, and 32-bit for Windows), it is naturally appropriate under such open source licenses as GPLv2 to also provide the source code.
 
 It should be noted that this source code is not, as far as knowledge of the maintainers of this repository, that the CALPGM code is NOT licensed under GPLv2, as Autofit is currently! You must contact the maintainers at JPL if you are interested in modifying the code for your own purposes. 
