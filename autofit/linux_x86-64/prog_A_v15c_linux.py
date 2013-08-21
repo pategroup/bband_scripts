@@ -2,11 +2,13 @@ import subprocess
 import os
 from easygui import *
 import sys
+import time
+import multiprocessing
+import timeit
 from multiprocessing import Process
 import re
 import numpy
 import random
-import time
 import string
 import math
 from collections import OrderedDict
@@ -22,9 +24,18 @@ based on previous work by the Pate Lab at UVa
 
 Please comment any changes you make to the code here:
 
-version 15c: 
+version 15c:
 -Added a progress bar. Notes are made in the comments above the definition for the bar, update_progress().
-NEED TO DO: MERGE CHANGES FROM 15B
+
+version 15b:
+
+-Added a time estimate to the length of a job based on the number of triples to fit, the estimated time it takes to run
+SPCAT 25 times, and the number of cores detected on the user's machine.  Time estimate assumes that the user will run the
+job on all available cores.
+
+-Dialogue boxes now give quantum numbers of transitions as well.
+
+-Also fixed a bug in the final_uncerts function and shaved a few seconds off of the cubic_spline routine.
 
 version 15:
 
@@ -203,6 +214,20 @@ def int_writer(u_A,u_B,u_C, J_min="00", J_max="20", inten="-10.0",Q_rot="300000"
     fh_int.write(input_file)
     fh_int.close()
 
+def time_estimate():
+    s = """\
+    int_writer(1,1,1, J_min="00", J_max="20", inten="-10.0",Q_rot="300000",freq="100.0", temperature=2, flag = "default")
+    var_writer(3000,2000,1000,2E-4,2E-4,2E-4,2E-4,2E-4,'Normal species',flag="uncert")
+    run_SPCAT()
+    """
+
+    outtime = timeit.timeit(stmt=s, number=25, setup="from __main__ import int_writer,var_writer,run_SPCAT")
+    scale_factor_one_proc = outtime / 25.0 # Rought estimated time in seconds for a single triple on one core.
+    cores_detected = multiprocessing.cpu_count()
+    scale_factor = scale_factor_one_proc / cores_detected # Rough estimated time in seconds for a single triple, divided by number of processors.
+
+    return scale_factor
+
 
 def var_writer(A,B,C,DJ,DJK,DK,dJ,dK,main_flow,flag):#generates SPCAT input file
 
@@ -291,6 +316,7 @@ def par_writer_refit(A,B,C,DJ,DJK,DK,dJ,dK): #generates SPFIT par file
     if float(dK) == 0 and dK_flag == 1:
         ddK = '1.00000000E+002'
     
+
     input_file = ""
     input_file += "anisole                                         Wed Mar Thu Jun 03 17:45:45 2010\n"
     input_file += "   8  500   5    0    0.0000E+000    1.0000E+005    1.0000E+000 1.0000000000\n" # don't choose more than 497 check transitions or it will crash.
@@ -333,10 +359,7 @@ def cubic_spline(spectrum,new_resolution): # Cubic spline of spectrum to new_res
     xnew = numpy.arange(x[0],x[-1],new_resolution)
     ynew = splev(xnew,tck,der=0)
 
-    output_spectrum = numpy.zeros((new_length,2))
-    for i in range(0, new_length):
-        output_spectrum[i,0] = xnew[i]
-        output_spectrum[i,1] = ynew[i]
+    output_spectrum = numpy.column_stack((xnew,ynew))
 
     return output_spectrum
 
@@ -514,89 +537,93 @@ def final_uncerts(trans_1_center,trans_2_center,trans_3_center,peak_1_uncertaint
     
     (bad_windows,bad_1,bad_2,bad_3)=check_bounds(trans_1_center,trans_2_center,trans_3_center,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,freq_low,freq_high)
 
+    trans_1_uncert = float(trans_1[4])
+    trans_2_uncert = float(trans_2[4])
+    trans_3_uncert = float(trans_3[4])
+
     while bad_windows ==1:
         while bad_1 == -1:
-            bad_wind_decision = buttonbox(msg='The search window for transition 1 extends below the range of the spectrum.  Would you like to continue, try a new uncertainty for this transition, or choose a new transition?', choices=('Continue','New Uncertainty','Choose New Transition'))
+            bad_wind_decision = buttonbox(msg='The search window for transition 1 (%s - %s) extends below the range of the spectrum.  Would you like to continue, try a new uncertainty for this transition, or choose a new transition?'%(trans_1[2],trans_1[3]), choices=('Continue','New Uncertainty','Choose New Transition'))
             if bad_wind_decision == 'Continue':
                 bad_windows = 0
                 bad_1 = 0
             elif bad_wind_decision == 'New Uncertainty':
-                peak_1_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 1 in MHz.  Its estimated position is %s and its estimated uncertainty is %s MHz."%(trans_1_center,trans_1_uncert)))
+                peak_1_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 1 (%s - %s) in MHz.  Its estimated position is %s and its estimated uncertainty is %s MHz."%(trans_1[2],trans_1[3],trans_1_center,trans_1_uncert)))
                 (bad_windows,bad_1,bad_2,bad_3)=check_bounds(trans_1_center,trans_2_center,trans_3_center,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,freq_low,freq_high)
             elif bad_wind_decision == 'Choose New Transition':
                 (trans_1,trans_1_uncert) = choose_new_transition(full_list)
                 trans_1_center = float(trans_1[1])
-                peak_1_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 1 in MHz.  Its estimated position is %s and its estimated uncertainty is %s MHz."%(trans_1_center,trans_1_uncert)))
+                peak_1_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 1 (%s - %s) in MHz.  Its estimated position is %s and its estimated uncertainty is %s MHz."%(trans_1[2],trans_1[3],trans_1_center,trans_1_uncert)))
                 (bad_windows,bad_1,bad_2,bad_3)=check_bounds(trans_1_center,trans_2_center,trans_3_center,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,freq_low,freq_high)
 
         while bad_2 == -1:
-            bad_wind_decision = buttonbox(msg='The search window for transition 2 extends below the range of the spectrum.  Would you like to continue, try a new uncertainty for this transition, or choose a new transition?', choices=('Continue','New Uncertainty','Choose New Transition'))
+            bad_wind_decision = buttonbox(msg='The search window for transition 2 (%s - %s) extends below the range of the spectrum.  Would you like to continue, try a new uncertainty for this transition, or choose a new transition?'%(trans_2[2],trans_2[3]), choices=('Continue','New Uncertainty','Choose New Transition'))
             if bad_wind_decision == 'Continue':
                 bad_windows = 0
                 bad_2 = 0
             elif bad_wind_decision == 'New Uncertainty':
-                peak_2_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 2 in MHz.  Its estimated position is %s and its uncertainty is %s MHz."%(trans_2_center,trans_2_uncert)))
+                peak_2_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 2 (%s - %s) in MHz.  Its estimated position is %s and its uncertainty is %s MHz."%(trans_2[2],trans_2[3],trans_2_center,trans_2_uncert)))
                 (bad_windows,bad_1,bad_2,bad_3)=check_bounds(trans_1_center,trans_2_center,trans_3_center,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,freq_low,freq_high)
             elif bad_wind_decision == 'Choose New Transition':
                 (trans_2,trans_2_uncert) = choose_new_transition(full_list)
                 trans_2_center = float(trans_2[1])
-                peak_2_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 2 in MHz.  Its estimated position is %s and its estimated uncertainty is %s MHz."%(trans_2_center,trans_2_uncert)))
+                peak_2_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 2 (%s - %s) in MHz.  Its estimated position is %s and its estimated uncertainty is %s MHz."%(trans_2[2],trans_2[3],trans_2_center,trans_2_uncert)))
                 (bad_windows,bad_1,bad_2,bad_3)=check_bounds(trans_1_center,trans_2_center,trans_3_center,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,freq_low,freq_high)
 
         while bad_3 == -1:
-            bad_wind_decision = buttonbox(msg='The search window for transition 3 extends below the range of the spectrum.  Would you like to continue, try a new uncertainty for this transition, or choose a new transition?', choices=('Continue','New Uncertainty','Choose New Transition'))
+            bad_wind_decision = buttonbox(msg='The search window for transition 3 (%s - %s) extends below the range of the spectrum.  Would you like to continue, try a new uncertainty for this transition, or choose a new transition?'%(trans_3[2],trans_3[3]), choices=('Continue','New Uncertainty','Choose New Transition'))
             if bad_wind_decision == 'Continue':
                 bad_windows = 0
                 bad_3 = 0
             elif bad_wind_decision == 'New Uncertainty':
-                peak_3_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 3 in MHz.  Its estimated position is %s and its uncertainty is %s MHz."%(trans_3_center,trans_3_uncert)))
+                peak_3_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 3 (%s - %s) in MHz.  Its estimated position is %s and its uncertainty is %s MHz."%(trans_3[2],trans_3[3],trans_3_center,trans_3_uncert)))
                 (bad_windows,bad_1,bad_2,bad_3)=check_bounds(trans_1_center,trans_2_center,trans_3_center,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,freq_low,freq_high)
             elif bad_wind_decision == 'Choose New Transition':
                 (trans_3,trans_3_uncert) = choose_new_transition(full_list)
                 trans_3_center = float(trans_3[1])
-                peak_3_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 3 in MHz.  Its estimated position is %s and its estimated uncertainty is %s MHz."%(trans_3_center,trans_3_uncert)))
+                peak_3_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 3 (%s - %s) in MHz.  Its estimated position is %s and its estimated uncertainty is %s MHz."%(trans_3[2],trans_3[3],trans_3_center,trans_3_uncert)))
                 (bad_windows,bad_1,bad_2,bad_3)=check_bounds(trans_1_center,trans_2_center,trans_3_center,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,freq_low,freq_high)
 
         while bad_1 == 1:
-            bad_wind_decision = buttonbox(msg='The search window for transition 1 extends above the range of the spectrum.  Would you like to continue, try a new uncertainty for this transition, or choose a new transition?', choices=('Continue','New Uncertainty','Choose New Transition'))
+            bad_wind_decision = buttonbox(msg='The search window for transition 1 (%s - %s) extends above the range of the spectrum.  Would you like to continue, try a new uncertainty for this transition, or choose a new transition?'%(trans_1[2],trans_1[3]), choices=('Continue','New Uncertainty','Choose New Transition'))
             if bad_wind_decision == 'Continue':
                 bad_windows = 0
                 bad_1 = 0
             elif bad_wind_decision == 'New Uncertainty':
-                peak_1_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 1 in MHz.  Its estimated position is %s and its uncertainty is %s MHz."%(trans_1_center,trans_1_uncert)))
+                peak_1_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 1 (%s - %s) in MHz.  Its estimated position is %s and its uncertainty is %s MHz."%(trans_1[2],trans_1[3],trans_1_center,trans_1_uncert)))
                 (bad_windows,bad_1,bad_2,bad_3)=check_bounds(trans_1_center,trans_2_center,trans_3_center,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,freq_low,freq_high)
             elif bad_wind_decision == 'Choose New Transition':
                 (trans_1,trans_1_uncert) = choose_new_transition(full_list)
                 trans_1_center = float(trans_1[1])
-                peak_1_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 1 in MHz.  Its estimated position is %s and its estimated uncertainty is %s MHz."%(trans_1_center,trans_1_uncert)))
+                peak_1_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 1 (%s - %s) in MHz.  Its estimated position is %s and its estimated uncertainty is %s MHz."%(trans_1[2],trans_1[3],trans_1_center,trans_1_uncert)))
                 (bad_windows,bad_1,bad_2,bad_3)=check_bounds(trans_1_center,trans_2_center,trans_3_center,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,freq_low,freq_high)
 
         while bad_2 == 1:
-            bad_wind_decision = buttonbox(msg='The search window for transition 2 extends above the range of the spectrum.  Would you like to continue, try a new uncertainty for this transition, or choose a new transition?', choices=('Continue','New Uncertainty','Choose New Transition'))
+            bad_wind_decision = buttonbox(msg='The search window for transition 2 (%s - %s) extends above the range of the spectrum.  Would you like to continue, try a new uncertainty for this transition, or choose a new transition?'%(trans_2[2],trans_2[3]), choices=('Continue','New Uncertainty','Choose New Transition'))
             if bad_wind_decision == 'Continue':
                 bad_windows = 0
                 bad_2 = 0
             elif bad_wind_decision == 'New Uncertainty':
-                peak_2_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 2 in MHz.  Its estimated position is %s and its uncertainty is %s MHz."%(trans_2_center,trans_2_uncert)))
+                peak_2_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 2 (%s - %s) in MHz.  Its estimated position is %s and its uncertainty is %s MHz."%(trans_2[2],trans_2[3],trans_2_center,trans_2_uncert)))
                 (bad_windows,bad_1,bad_2,bad_3)=check_bounds(trans_1_center,trans_2_center,trans_3_center,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,freq_low,freq_high)
             elif bad_wind_decision == 'Choose New Transition':
                 (trans_2,trans_2_uncert) = choose_new_transition(full_list)
                 trans_2_center = float(trans_2[1])
-                peak_2_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 2 in MHz.  Its estimated position is %s and its estimated uncertainty is %s MHz."%(trans_2_center,trans_2_uncert)))
+                peak_2_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 2 (%s - %s) in MHz.  Its estimated position is %s and its estimated uncertainty is %s MHz."%(trans_2[2],trans_2[3],trans_2_center,trans_2_uncert)))
                 (bad_windows,bad_1,bad_2,bad_3)=check_bounds(trans_1_center,trans_2_center,trans_3_center,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,freq_low,freq_high)
 
         while bad_3 == 1:
-            bad_wind_decision = buttonbox(msg='The search window for transition 3 extends above the range of the spectrum.  Would you like to continue, try a new uncertainty for this transition, or choose a new transition?', choices=('Continue','New Uncertainty','Choose New Transition'))
+            bad_wind_decision = buttonbox(msg='The search window for transition 3 (%s - %s) extends above the range of the spectrum.  Would you like to continue, try a new uncertainty for this transition, or choose a new transition?'%(trans_3[2],trans_3[3]), choices=('Continue','New Uncertainty','Choose New Transition'))
             if bad_wind_decision == 'Continue':
                 bad_windows = 0
                 bad_3 = 0
             elif bad_wind_decision == 'New Uncertainty':
-                peak_3_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 3 in MHz.  Its estimated position is %s and its uncertainty is %s MHz."%(trans_3_center,trans_3_uncert)))
+                peak_3_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 3 (%s - %s) in MHz.  Its estimated position is %s and its uncertainty is %s MHz."%(trans_3[2],trans_3[3],trans_3_center,trans_3_uncert)))
                 (bad_windows,bad_1,bad_2,bad_3)=check_bounds(trans_1_center,trans_2_center,trans_3_center,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,freq_low,freq_high)
             elif bad_wind_decision == 'Choose New Transition':
                 (trans_3,trans_3_uncert) = choose_new_transition(full_list)
                 trans_3_center = float(trans_3[1])
-                peak_3_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 3 in MHz.  Its estimated position is %s and its estimated uncertainty is %s MHz."%(trans_3_center,trans_3_uncert)))
+                peak_3_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 3 (%s - %s) in MHz.  Its estimated position is %s and its estimated uncertainty is %s MHz."%(trans_3[2],trans_3[3],trans_3_center,trans_3_uncert)))
                 (bad_windows,bad_1,bad_2,bad_3)=check_bounds(trans_1_center,trans_2_center,trans_3_center,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,freq_low,freq_high)
 
         if (trans_1 == trans_2) or (trans_2 == trans_3) or (trans_1 == trans_3):
@@ -608,15 +635,15 @@ def final_uncerts(trans_1_center,trans_2_center,trans_3_center,peak_1_uncertaint
                 trans_1_uncert = float(trans_1[4])
                 trans_2_uncert = float(trans_2[4])
                 trans_3_uncert = float(trans_3[4])
-                peak_1_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 1 in MHz.  Its estimated position is %s and its estimated uncertainty is %s MHz."%(trans_1_center,trans_1_uncert)))
-                peak_2_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 2 in MHz.  Its estimated position is %s and its estimated uncertainty is %s MHz."%(trans_2_center,trans_2_uncert)))
-                peak_3_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 3 in MHz.  Its estimated position is %s and its estimated uncertainty is %s MHz."%(trans_3_center,trans_3_uncert)))
+                peak_1_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 1 (%s - %s) in MHz.  Its estimated position is %s and its estimated uncertainty is %s MHz."%(trans_1[2],trans_1[3],trans_1_center,trans_1_uncert)))
+                peak_2_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 2 (%s - %s) in MHz.  Its estimated position is %s and its estimated uncertainty is %s MHz."%(trans_2[2],trans_2[3],trans_2_center,trans_2_uncert)))
+                peak_3_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 3 (%s - %s) in MHz.  Its estimated position is %s and its estimated uncertainty is %s MHz."%(trans_3[2],trans_3[3],trans_3_center,trans_3_uncert)))
                 (bad_windows,bad_1,bad_2,bad_3)=check_bounds(trans_1_center,trans_2_center,trans_3_center,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,freq_low,freq_high)
 
     return trans_1,trans_2,trans_3,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty
 
 
-def triples_gen(window_decision,trans_1_uncert,trans_2_uncert,trans_3_uncert,freq_uncertainty,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,peaklist,freq_low,freq_high,isotopomer_count,decision,full_list,A,B,C,DJ,DJK,DK,dJ,dK,temperature,u_A,u_B,u_C,main_flow,trans_1,trans_2,trans_3):
+def triples_gen(window_decision,trans_1_uncert,trans_2_uncert,trans_3_uncert,freq_uncertainty,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,peaklist,freq_low,freq_high,isotopomer_count,decision,full_list,A,B,C,DJ,DJK,DK,dJ,dK,temperature,u_A,u_B,u_C,main_flow,trans_1,trans_2,trans_3,scale_factor):
 
     user_flag = 0
     est_unc_flag = 0
@@ -654,9 +681,9 @@ def triples_gen(window_decision,trans_1_uncert,trans_2_uncert,trans_3_uncert,fre
                 peak_3_uncertainty = freq_uncertainty
 
             if freq_uncertainty==0.0 and user_flag ==1 and same_flag ==0 and isotopomer_count ==0:
-                peak_1_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 1 in MHz.  Its estimated position is %s and its uncertainty is %s MHz."%(trans_1_center,trans_1_uncert)))
-                peak_2_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 2 in MHz.  Its estimated position is %s and its uncertainty is %s MHz."%(trans_2_center,trans_2_uncert)))
-                peak_3_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 3 in MHz.  Its estimated position is %s and its uncertainty is %s MHz."%(trans_3_center,trans_3_uncert)))
+                peak_1_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 1 (%s - %s) in MHz.  Its estimated position is %s and its uncertainty is %s MHz."%(trans_1[2],trans_1[3],trans_1_center,trans_1_uncert)))
+                peak_2_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 2 (%s - %s) in MHz.  Its estimated position is %s and its uncertainty is %s MHz."%(trans_2[2],trans_2[3],trans_2_center,trans_2_uncert)))
+                peak_3_uncertainty = float(enterbox(msg="Enter the frequency uncertainty for transition 3 (%s - %s) in MHz.  Its estimated position is %s and its uncertainty is %s MHz."%(trans_3[2],trans_3[3],trans_3_center,trans_3_uncert)))
             
             (trans_1,trans_2,trans_3,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty) = final_uncerts(trans_1_center,trans_2_center,trans_3_center,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,freq_low,freq_high,full_list,A,B,C,DJ,DJK,DK,dJ,dK,temperature,u_A,u_B,u_C,main_flow,trans_1,trans_2,trans_3)
             trans_1_center = float(trans_1[1])
@@ -675,11 +702,26 @@ def triples_gen(window_decision,trans_1_uncert,trans_2_uncert,trans_3_uncert,fre
                 if abs(float(trans_3_center)-float(freq_p))< peak_3_uncertainty:
                     trans_3_peaks.append((freq_p, inten_p))
             num_of_triples = len(trans_1_peaks)*len(trans_2_peaks)*len(trans_3_peaks) #this tells you how many entries there will be in the all_combo_list
+            
             global tot
             tot = int(num_of_triples)
-                                    
+
+            estimated_time = float(num_of_triples) * scale_factor
+
+            if estimated_time <= 90:
+                time_string = str(int(estimated_time)) + " seconds"
+            elif estimated_time > 90 and estimated_time <= 5400:
+                time_min = math.ceil(estimated_time / 60.0)
+                time_string = str(int(time_min)) + " minutes"
+            elif estimated_time > 5400 and estimated_time <= 129600:
+                time_hours = math.ceil(estimated_time / 3600.0)
+                time_string = str(int(time_hours)) + " hours"
+            elif estimated_time > 129600:
+                time_days = math.ceil(estimated_time / 86400.0)
+                time_string = str(int(time_days)) + " days"
+
             if isotopomer_count == 0:
-                decision = buttonbox(msg='There are %s triples in this calculation. Would you like to continue, try new uncertainty, or quit?'%(str(num_of_triples)), choices=('Continue','Quit','new uncertainty'))
+                decision = buttonbox(msg='There are %s triples in this calculation, which will take roughly %s. Would you like to continue, try new uncertainty, or quit?'%(str(num_of_triples),time_string), choices=('Continue','Quit','new uncertainty'))
             
             if decision == 'Quit':
                 quit()
@@ -1501,10 +1543,9 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
             if file_list[-x][40:64]=="EXP.FREQ.  -  CALC.FREQ.":
                 break
         read_fit = (const_list[0],const_list[1], const_list[2],freq_list)
-        #global triples_counter
         triples_counter +=1
         global cur
-        cur +=1
+        cur += 1
         update_progress(cur)
         constants = read_fit[0:3]
         freq_17 = read_fit[3]
@@ -1610,8 +1651,6 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
     fh_final.close()
     os.system("sort -r 'final_output%s.txt'>sorted_final_out%s.txt"%(str(file_num),str(file_num)))#sorts output by score
 
-# Updates and prints the progress bar. Currently it's a bit glitchy, in that it doesn't accurately represent the # of triples actually processed. This is because update_progress() gets called separately by each of the 
-# cores, and so in reality the variable "progress" is just progress for a single core. I extrapolate to all N cores by multiplying progress by the number of processors, but this can cause the count to go over 100%. 
 def update_progress(progress):
     global count
     if count == 0:
@@ -1626,9 +1665,9 @@ def update_progress(progress):
         count = 0
     sys.stdout.write('\r'+str(progress*processors)+'/'+str(tot)+' :: ' + '[{0}] {1}%'.format('#'*((progress*processors)/(int(tot)/10)),str(int((progress*processors)/float(tot)*100)))+' :: '+str(int(veloc*processors))+' Hz ::') # using print() prints new lines
     sys.stdout.flush()
-    
-if __name__ == '__main__': #multiprocessing imports script as module
 
+if __name__ == '__main__': #multiprocessing imports script as module
+    
     ## The following block sets the parameters for the progress bar during autofit run 
     tot = 0
     t1 = time.time()
@@ -1638,25 +1677,29 @@ if __name__ == '__main__': #multiprocessing imports script as module
     cur = 0
 
     u_A = "0.0"#<<<<<<<<<<<<<set default value here
-    u_B = "0.164"#<<<<<<<<<<<<<set default value here
+    u_B = "1.0"#<<<<<<<<<<<<<set default value here
     u_C = "0.0"#<<<<<<<<<<<<<set default value here
-    A = "4416.9530"#<<<<<<<<<<<<<set default value here 
-    B = "2849.9882"#<<<<<<<<<<<<<set default value here
-    C = "1920.1671"#<<<<<<<<<<<<<set default value here, etc...
-    DJ = "0"
-    DJK = "0"
-    DK = "0"
-    dJ = "0"
-    dK = "0"
-    processors = 2
+    A = "9769.6221"#<<<<<<<<<<<<<set default value here 
+    B = "868.84665"#<<<<<<<<<<<<<set default value here
+    C = "818.51874"#<<<<<<<<<<<<<set default value here, etc...
+    DJ = "-0.00004723"
+    DJK = "0.0008991"
+    DK = "-0.02317"
+    dJ = "-0.000005029"
+    dK = "-0.000343"
+    processors = 6
     #freq_high = float(18000.0)
     #freq_low = float(6000.0)
     inten_high = float('100000.0')
-    inten_low = float('1E-003')
+    inten_low = float('4E-004')
     temperature="2"
     Jmax="20"     
         
+
     main_flow = buttonbox(msg='Are you searching for a normal species spectrum or singly-substituted isotopologues (already have NS experimental constants)?', choices=('Normal species','Isotopologues'))
+
+    scale_factor = time_estimate()
+
 
     x = subprocess.Popen("ls", stdout=subprocess.PIPE, shell=True)
     x = x.stdout.read().split()
@@ -1856,7 +1899,7 @@ if __name__ == '__main__': #multiprocessing imports script as module
         peak_3_uncertainty = 0
         decision = ""
 
-        (trans_1,trans_2,trans_3,trans_1_peaks,trans_2_peaks,trans_3_peaks,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,num_of_triples,decision) = triples_gen(window_decision,trans_1_uncert,trans_2_uncert,trans_3_uncert,freq_uncertainty,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,peaklist,freq_low,freq_high,isotopomer_count,decision,full_list,A,B,C,DJ,DJK,DK,dJ,dK,temperature,u_A,u_B,u_C,main_flow,trans_1,trans_2,trans_3)
+        (trans_1,trans_2,trans_3,trans_1_peaks,trans_2_peaks,trans_3_peaks,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,num_of_triples,decision) = triples_gen(window_decision,trans_1_uncert,trans_2_uncert,trans_3_uncert,freq_uncertainty,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,peaklist,freq_low,freq_high,isotopomer_count,decision,full_list,A,B,C,DJ,DJK,DK,dJ,dK,temperature,u_A,u_B,u_C,main_flow,trans_1,trans_2,trans_3,scale_factor)
 
         if check_peaks_list == []:                                        
             int_writer(u_A,u_B,u_C, J_max=Jmax,freq=str((freq_high*.001)), temperature=temperature,flag="default")
@@ -1999,9 +2042,7 @@ if __name__ == '__main__': #multiprocessing imports script as module
         elif continue_decision == 'Yes':
             main_flow = 'Isotopologues'
             msg = "Enter constants for the normal species isotopologue in MHz. If left blank, they will be set to default values (in parentheses). The inputs will be sent directly to SPCAT, so remember to input -DJ, -DJK, etc. "
-            title = "Isotopologue fitter"
-            fieldNames = ["a dipole (%s)"%(u_A),"b dipole (%s)"%(u_B),"c dipole (%s)"%(u_C),"A (%s MHz)"%(A),"B (%s MHz)"%(B),"C (%s MHz)"%(C),"-DJ (%s MHz)"%(DJ),"-DJK (%s MHz)"%(DJK),"-DK (%s MHz)"%(DK),"-dJ (%s MHz)"%(dJ),"-dK (%s MHz)"%(dK),\
-                         "number of processors (%s)"%(processors),"upper intensity limit on exp spectrum (%s)"%(inten_high),"lower intensity limit on exp spectrum(%s)"%(inten_low),"temperature (%sK)"%(temperature), "Jmax (%s)"%(Jmax)]
+
             const = [] 
             const = multenterbox(msg,title, fieldNames) # gui for grabbing data
          
@@ -2067,7 +2108,7 @@ if __name__ == '__main__': #multiprocessing imports script as module
             curr_B = isotopologue[2]
             curr_C = isotopologue[3]
 
-            a = subprocess.Popen("mkdir %s"%isotope_ID, stdout=subprocess.PIPE, shell=True)
+            a = subprocess.Popen("mkdir %s"%isotope_ID, stdout=subprocess.PIPE,shell=True)
             a.wait()
 
             for number in range(processors):
@@ -2118,7 +2159,7 @@ if __name__ == '__main__': #multiprocessing imports script as module
                 peak_3_uncertainty = 0
                 decision = ""
 
-            (trans_1,trans_2,trans_3,trans_1_peaks,trans_2_peaks,trans_3_peaks,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,num_of_triples,decision) = triples_gen(window_decision,trans_1_uncert,trans_2_uncert,trans_3_uncert,freq_uncertainty,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,peaklist,freq_low,freq_high,isotopomer_count,decision,full_list,A,B,C,DJ,DJK,DK,dJ,dK,temperature,u_A,u_B,u_C,main_flow,trans_1,trans_2,trans_3)
+            (trans_1,trans_2,trans_3,trans_1_peaks,trans_2_peaks,trans_3_peaks,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,num_of_triples,decision) = triples_gen(window_decision,trans_1_uncert,trans_2_uncert,trans_3_uncert,freq_uncertainty,peak_1_uncertainty,peak_2_uncertainty,peak_3_uncertainty,peaklist,freq_low,freq_high,isotopomer_count,decision,full_list,A,B,C,DJ,DJK,DK,dJ,dK,temperature,u_A,u_B,u_C,main_flow,trans_1,trans_2,trans_3,scale_factor)
 
             if check_peaks_list == []:            
                 int_writer(u_A,u_B,u_C, J_max=Jmax,freq=str((freq_high*.001)), temperature=temperature,flag="default")
