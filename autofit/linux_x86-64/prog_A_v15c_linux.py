@@ -6,6 +6,7 @@ from multiprocessing import Process
 import re
 import numpy
 import random
+import time
 import string
 import math
 from collections import OrderedDict
@@ -20,6 +21,9 @@ Written by Ian Finneran, Steve Shipman at NCF
 based on previous work by the Pate Lab at UVa
 
 Please comment any changes you make to the code here:
+
+version 15c: 
+-Added a progress bar. Notes are made in the comments above the definition for the bar, update_progress().
 
 version 15:
 
@@ -670,6 +674,8 @@ def triples_gen(window_decision,trans_1_uncert,trans_2_uncert,trans_3_uncert,fre
                 if abs(float(trans_3_center)-float(freq_p))< peak_3_uncertainty:
                     trans_3_peaks.append((freq_p, inten_p))
             num_of_triples = len(trans_1_peaks)*len(trans_2_peaks)*len(trans_3_peaks) #this tells you how many entries there will be in the all_combo_list
+            global tot
+            tot = int(num_of_triples)
                                     
             if isotopomer_count == 0:
                 decision = buttonbox(msg='There are %s triples in this calculation. Would you like to continue, try new uncertainty, or quit?'%(str(num_of_triples)), choices=('Continue','Quit','new uncertainty'))
@@ -1494,7 +1500,11 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
             if file_list[-x][40:64]=="EXP.FREQ.  -  CALC.FREQ.":
                 break
         read_fit = (const_list[0],const_list[1], const_list[2],freq_list)
+        #global triples_counter
         triples_counter +=1
+        global cur
+        cur +=1
+        update_progress(cur)
         constants = read_fit[0:3]
         freq_17 = read_fit[3]
         freq_17.reverse()
@@ -1598,9 +1608,34 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
     fh_final.write(output_file)
     fh_final.close()
     os.system("sort -r 'final_output%s.txt'>sorted_final_out%s.txt"%(str(file_num),str(file_num)))#sorts output by score
+
+# Updates and prints the progress bar. Currently it's a bit glitchy, in that it doesn't accurately represent the # of triples actually processed. This is because update_progress() gets called separately by each of the 
+# cores, and so in reality the variable "progress" is just progress for a single core. I extrapolate to all N cores by multiplying progress by the number of processors, but this can cause the count to go over 100%. 
+def update_progress(progress):
+    global count
+    if count == 0:
+        global t1
+        t1 = time.time()
+    count += 1
+    if count == 100:
+        global veloc
+        global t2
+        t2 = time.time()
+        veloc = count/(t2-t1)
+        count = 0
+    sys.stdout.write('\r'+str(progress*processors)+'/'+str(tot)+' :: ' + '[{0}] {1}%'.format('#'*((progress*processors)/(int(tot)/10)),str(int((progress*processors)/float(tot)*100)))+' :: '+str(int(veloc*processors))+' Hz ::') # using print() prints new lines
+    sys.stdout.flush()
     
 if __name__ == '__main__': #multiprocessing imports script as module
-    
+
+    ## The following block sets the parameters for the progress bar during autofit run 
+    tot = 0
+    t1 = time.time()
+    t2 = time.time()
+    veloc = 0
+    count = 0
+    cur = 0
+
     u_A = "0.0"#<<<<<<<<<<<<<set default value here
     u_B = "0.164"#<<<<<<<<<<<<<set default value here
     u_C = "0.0"#<<<<<<<<<<<<<set default value here
