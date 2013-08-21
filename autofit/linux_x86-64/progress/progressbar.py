@@ -19,8 +19,11 @@ def update_progress(progress):
 		t2 = time.time()
 		veloc = 10.0/(t2-t1)
 		count = 0
-
-	sys.stdout.write('\r'+str(progress)+'/'+str(input_num)+' :: '+'[{0}] {1}%'.format('#'*(progress/(int(input_num)/10)),progress/float(input_num)*100)+' :: '+str(int(veloc))+' Hz') # using print() prints new lines
+	print type(progress)	
+	print type(procs)
+	print type(((progress*procs)/(int(input_num)/10)))
+	print type((progress*procs)/float(input_num)*100)
+	sys.stdout.write('\r'+str(progress*procs)+'/'+str(input_num)+' :: '+'[{0}] {1}%'.format('#'*((progress*procs)/(int(input_num)/10)),str((progress*procs)/float(input_num)*100))+' :: '+str(int(veloc*procs))+' Hz') # using print() prints new lines
 	sys.stdout.flush()
 
 def run(numtrip):
@@ -30,5 +33,5 @@ def run(numtrip):
 
 
 input_num = raw_input("Input a number of triples:")
+procs = int(raw_input("Input number of procs"))
 run(input_num)
-
