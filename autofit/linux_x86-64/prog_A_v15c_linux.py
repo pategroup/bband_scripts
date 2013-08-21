@@ -24,6 +24,7 @@ Please comment any changes you make to the code here:
 
 version 15c: 
 -Added a progress bar. Notes are made in the comments above the definition for the bar, update_progress().
+NEED TO DO: MERGE CHANGES FROM 15B
 
 version 15:
 
