@@ -707,7 +707,7 @@ def triples_gen(window_decision,trans_1_uncert,trans_2_uncert,trans_3_uncert,fre
             num_of_triples = len(trans_1_peaks)*len(trans_2_peaks)*len(trans_3_peaks) #this tells you how many entries there will be in the all_combo_list
             
             global tot
-            tot = int(num of triples) # Progress bar counter
+            tot = int(num_of_triples) # Progress bar counter
 
             estimated_time = float(num_of_triples) * scale_factor
 
