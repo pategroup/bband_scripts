@@ -2,6 +2,7 @@ import subprocess
 import os
 from easygui import *
 import sys
+import time
 import multiprocessing
 import timeit
 from multiprocessing import Process
@@ -22,6 +23,12 @@ Written by Ian Finneran, Steve Shipman at NCF
 based on previous work by the Pate Lab at UVa
 
 Please comment any changes you make to the code here:
+
+version 15c:
+-Added a progress bar. Notes are made in the comments above the definition for the bar, update_progress().
+-Fixed an issue with reading var files that depended on which version of SPCAT was in use.  Also added a line to fix an 
+unusual edge case with omc_inten that would occasionally lead to a crash for particularly poor combinations of predicted
+and actual peak positions.
 
 version 15b:
 
@@ -374,11 +381,11 @@ def peakpicker(spectrum,thresh_l,thresh_h):#Code taken from Cristobal's peak-pic
     return peakpicks, freq_low, freq_high
 
 def run_SPCAT(): 
-    a = subprocess.Popen("SPCAT default", stdout=subprocess.PIPE, shell=False)
+    a = subprocess.Popen("./spcat default", stdout=subprocess.PIPE, shell=True)
     a.stdout.read()#seems to be best way to get SPCAT to finish. I tried .wait(), but it outputted everything to screen
  
 def run_SPCAT_refit(): 
-    a = subprocess.Popen("SPCAT refit", stdout=subprocess.PIPE, shell=False)
+    a = subprocess.Popen("./spcat refit", stdout=subprocess.PIPE, shell=True)
     a.stdout.read()#seems to be best way to get SPCAT to finish. I tried .wait(), but it outputted everything to screen
 
 def cat_reader(freq_high,freq_low,flag): #reads output from SPCAT
@@ -699,6 +706,9 @@ def triples_gen(window_decision,trans_1_uncert,trans_2_uncert,trans_3_uncert,fre
                     trans_3_peaks.append((freq_p, inten_p))
             num_of_triples = len(trans_1_peaks)*len(trans_2_peaks)*len(trans_3_peaks) #this tells you how many entries there will be in the all_combo_list
             
+            global tot
+            tot = int(num_of_triples) # Progress bar counter
+
             estimated_time = float(num_of_triples) * scale_factor
 
             if estimated_time <= 90:
@@ -729,7 +739,7 @@ def triples_gen(window_decision,trans_1_uncert,trans_2_uncert,trans_3_uncert,fre
 
 def refine_fits(job_name,isotope_ID,u_A,u_B,u_C,Jmax,freq_high,temperature,fits,DJ,DJK,DK,dJ,dK,peaklist,main_flow):
 
-    a = subprocess.Popen("mkdir refits")
+    a = subprocess.Popen("mkdir refits",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     a.wait()
 
     if isotope_ID == "NS only":
@@ -827,7 +837,7 @@ def refine_fits(job_name,isotope_ID,u_A,u_B,u_C,Jmax,freq_high,temperature,fits,
             best_matches = match_to_peaklist(updated_trans,peaklist) # Assigns closest experimental peak frequencies to transitions
             lin_writer_refit(best_matches)
 
-            a = subprocess.Popen("spfit0 refit", stdout=subprocess.PIPE, shell=False)
+            a = subprocess.Popen("./spfit0 refit", stdout=subprocess.PIPE, shell=True)
             a.stdout.read()#used to let SPFIT finish
 
             SPFIT_results = open("refit.fit",'r')
@@ -1505,21 +1515,21 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
         fh_lin = open("default%s.lin"%(str(file_num)), "w")
         fh_lin.write(input_file)
         fh_lin.close()        
-        a = subprocess.Popen("SPFIT%s default%s"%(str(file_num),str(file_num)), stdout=subprocess.PIPE, shell=False)
+        a = subprocess.Popen("./spfit%s default%s"%(str(file_num),str(file_num)), stdout=subprocess.PIPE, shell=True)
         a.stdout.read()#used to let SPFIT finish
 
         const_list = []
 
         fh_var = open("default%s.var"%(str(file_num)))
         for line in fh_var:
-            if line[8:13] == "10000":
-                temp_A = float(line[15:37])
+            if line.split()[0] == "10000":
+                temp_A = float(line.split()[1])
                 const_list.append("%.3f" %temp_A)
-            if line[8:13] == "20000":
-                temp_B = float(line[15:37])
+            if line.split()[0] == "20000":
+                temp_B = float(line.split()[1])
                 const_list.append("%.3f" %temp_B)
-            if line[8:13] == "30000":
-                temp_C = float(line[15:37])
+            if line.split()[0] == "30000":
+                temp_C = float(line.split()[1])
                 const_list.append("%.3f" %temp_C)
 
         fh_fit = open("default%s.fit"%(str(file_num)))
@@ -1537,6 +1547,11 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
                 break
         read_fit = (const_list[0],const_list[1], const_list[2],freq_list)
         triples_counter +=1
+
+        global cur
+        cur += 1
+        update_progress(cur) # Call progress bar
+
         constants = read_fit[0:3]
         freq_17 = read_fit[3]
         freq_17.reverse()
@@ -1585,6 +1600,7 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
                 peak = p_8
                 regular_counter +=1
             old_omc = 100000.0
+            omc_inten = 100000.0
             for peak_freq,peak_inten in peaks_section: #find nearest peak in actual spectrum to the given top 20 peak
                 omc = abs(current_peak-float(peak_freq))
                 omc_low = abs(current_peak-float(peak))
@@ -1640,9 +1656,32 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
     fh_final.write(output_file)
     fh_final.close()
     os.system("sort -r 'final_output%s.txt'>sorted_final_out%s.txt"%(str(file_num),str(file_num)))#sorts output by score
-    
+
+def update_progress(progress):
+    global count
+    if count == 0:
+        global t1
+        t1 = time.time()
+    count += 1
+    if count == 100:
+        global veloc
+        global t2
+        t2 = time.time()
+        veloc = count/(t2-t1)
+        count = 0
+    sys.stdout.write('\r'+str(progress*processors)+'/'+str(tot)+' :: ' + '[{0}] {1}%'.format('#'*((progress*processors)/(int(tot)/10)),str(int((progress*processors)/float(tot)*100)))+' :: '+str(int(veloc*processors))+' Hz ::') # using print() prints new lines
+    sys.stdout.flush()
+
 if __name__ == '__main__': #multiprocessing imports script as module
     
+    ## The following block sets the parameters for the progress bar during autofit run 
+    tot = 0
+    t1 = time.time()
+    t2 = time.time()
+    veloc = 0
+    count = 0
+    cur = 0
+
     u_A = "0.0"#<<<<<<<<<<<<<set default value here
     u_B = "1.0"#<<<<<<<<<<<<<set default value here
     u_C = "0.0"#<<<<<<<<<<<<<set default value here
@@ -1691,7 +1730,7 @@ if __name__ == '__main__': #multiprocessing imports script as module
         if marker1 ==0:
             file_flag =0
         
-    a = subprocess.Popen("mkdir %s"%job_name)
+    a = subprocess.Popen("mkdir %s"%job_name, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     a.wait()
 
     fitting_peaks_flag =0
@@ -1819,10 +1858,10 @@ if __name__ == '__main__': #multiprocessing imports script as module
     (peaklist, freq_low, freq_high) = peakpicker(spectrum_2kHz,inten_low,inten_high) # Calls slightly modified version of Cristobal's routine to pick peaks instead of forcing user to do so.
     
     for number in range(processors):
-        y = subprocess.Popen("cp SPFIT.EXE %s\SPFIT%s.EXE"%(job_name,number), stdout=subprocess.PIPE, shell=True)
+        y = subprocess.Popen("cp spfit %s/spfit%s"%(job_name,number), stdout=subprocess.PIPE, shell=True)
         y.stdout.read()     
 
-    y = subprocess.Popen("cp SPCAT.EXE %s\SPCAT.EXE"%(job_name), stdout=subprocess.PIPE, shell=True)
+    y = subprocess.Popen("cp spcat %s/spcat"%(job_name), stdout=subprocess.PIPE, shell=True)
     y.stdout.read() 
     
     os.chdir(job_name)
@@ -2075,14 +2114,14 @@ if __name__ == '__main__': #multiprocessing imports script as module
             curr_B = isotopologue[2]
             curr_C = isotopologue[3]
 
-            a = subprocess.Popen("mkdir %s"%isotope_ID)
+            a = subprocess.Popen("mkdir %s"%isotope_ID, stdout=subprocess.PIPE,shell=True)
             a.wait()
 
             for number in range(processors):
-                y = subprocess.Popen("cp SPFIT%s.EXE %s\SPFIT%s.EXE"%(number,isotope_ID,number), stdout=subprocess.PIPE, shell=True)
+                y = subprocess.Popen("cp spfit%s %s/spfit%s"%(number,isotope_ID,number), stdout=subprocess.PIPE, shell=True)
                 y.stdout.read()     
 
-            y = subprocess.Popen("cp SPCAT.EXE %s\SPCAT.EXE"%(isotope_ID), stdout=subprocess.PIPE, shell=True)
+            y = subprocess.Popen("cp spcat %s/spcat"%(isotope_ID), stdout=subprocess.PIPE, shell=True)
             y.stdout.read() 
 
             os.chdir(isotope_ID)
