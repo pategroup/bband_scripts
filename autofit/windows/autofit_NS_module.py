@@ -31,7 +31,7 @@ completion; those will probably be separated modules later.
 
 """
 
-def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,file_num,A,B,C,DJ,DJK,DK,dJ,dK):
+def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,file_num,A,B,C,DJ,DJK,DK,dJ,dK,fixed_flags):
     
     all_combo_file = "all_combo_list%s.txt"%(str(file_num)) 
     
@@ -102,6 +102,44 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
     theor_inten_avg = (sum(theor_inten_list)/len(theor_inten_list))
     theor_inten_unitless_stdev = numpy.std(theor_inten_list)/theor_inten_avg
 
+    a_uncert = '1.0E+025'
+    b_uncert = '1.0E+025'
+    c_uncert = '1.0E+025'
+    DJ_uncert = '1.0E+025'
+    DJK_uncert = '1.0E+025'
+    DK_uncert = '1.0E+025'
+    dJ_uncert = '1.0E+000'
+    dK_uncert = '1.0E+000'
+    
+    
+    
+    
+    
+    if fixed_flags[0]==True:
+        a_uncert = '1.0E-025'
+    if fixed_flags[1]==True:
+        b_uncert = '1.0E-025'            
+    if fixed_flags[2]==True:
+        c_uncert = '1.0E-025'  
+    if fixed_flags[3]==True:
+        DJ_uncert = '1.0E-025' 
+    if fixed_flags[4]==True:
+        DJK_uncert = '1.0E-025'                       
+    if fixed_flags[5]==True:
+        DK_uncert = '1.0E-025'             
+    if fixed_flags[6]==True:
+        dJ_uncert = '1.0E-025'     
+    if fixed_flags[7]==True:
+        dK_uncert = '1.0E-025'   
+
+
+
+
+
+
+
+
+
     for all_combo_line in all_combo_list_file:
         all_combo_line = all_combo_line.split(",")
         peaks_triple= [(all_combo_line[0],all_combo_line[1]),(all_combo_line[2],all_combo_line[3]),(all_combo_line[4],all_combo_line[5])]
@@ -111,14 +149,14 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
         input_file += "anisole                                         Wed Mar Thu Jun 03 17:45:45 2010\n"
         input_file += "   8  500   5    0    0.0000E+000    1.0000E+005    1.0000E+000 1.0000000000\n" # don't choose more than 497 check transitions or it will crash.
         input_file +="a   1  1  0  50  0  1  1  1  1  -1   0\n"
-        input_file += "           10000  %s 1.0E+004 \n" % A
-        input_file += "           20000  %s 1.0E+004 \n" % B
-        input_file += "           30000  %s 1.0E+004 \n" % C
-        input_file += "             200  %s 1.0E-025 \n" % DJ
-        input_file += "            1100  %s 1.0E-025 \n" % DJK
-        input_file += "            2000  %s 1.0E-025 \n" % DK
-        input_file += "           40100  %s 1.0E-025 \n" % dJ
-        input_file += "           41000  %s 1.0E-025 \n" % dK
+        input_file += "           10000  %s %s \n" % (A,a_uncert)
+        input_file += "           20000  %s %s \n" % (B,b_uncert)
+        input_file += "           30000  %s %s \n" % (C,c_uncert)
+        input_file += "             200  %s %s \n" % (DJ,DJ_uncert)
+        input_file += "            1100  %s %s \n" % (DJK,DJK_uncert)
+        input_file += "            2000  %s %s \n" % (DK,DK_uncert)
+        input_file += "           40100  %s %s \n" % (dJ,dJ_uncert)
+        input_file += "           41000  %s %s \n" % (dK,dK_uncert)
         fh_par = open("default%s.par"%(str(file_num)),'w')
         fh_par.write(input_file)
         fh_par.close()
@@ -264,7 +302,13 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
     fh_final.close()
     os.system("sort -r 'final_output%s.txt'>sorted_final_out%s.txt"%(str(file_num),str(file_num)))#sorts output by score
     
-def autofit_NS(job_name,u_A,u_B,u_C,A,B,C,DJ,DJK,DK,dJ,dK,freq_high,freq_low,inten_high,inten_low,processors,temperature,Jmax,trans_1,trans_2,trans_3,check_peaks_list,peaklist,trans_1_peaks,trans_2_peaks,trans_3_peaks):
+def autofit_NS(job_name,u_A,u_B,u_C,A,B,C,DJ,DJK,DK,dJ,dK,freq_high,freq_low,inten_high,inten_low,processors,temperature,Jmax,trans_1,trans_2,trans_3,check_peaks_list,peaklist,trans_1_peaks,trans_2_peaks,trans_3_peaks,fix_flags):
+
+    global fixed_flags
+    fixed_flags = fix_flags
+    
+
+
 
     autofit_NS_success_flag = "Fail"
 
@@ -420,7 +464,7 @@ def autofit_NS(job_name,u_A,u_B,u_C,A,B,C,DJ,DJK,DK,dJ,dK,freq_high,freq_low,int
             trans_y_peaks = trans_2_peaks
             trans_z_peaks = trans_3_peaks[num]
             
-        vars()["p%s"%str(num)] = Process(target=fit_triples, args=(trans_x_peaks,trans_y_peaks,trans_z_peaks,trans_1,trans_2,trans_3,top_peaks_3cut,peaklist,num,A,B,C,DJ,DJK,DK,dJ,dK))
+        vars()["p%s"%str(num)] = Process(target=fit_triples, args=(trans_x_peaks,trans_y_peaks,trans_z_peaks,trans_1,trans_2,trans_3,top_peaks_3cut,peaklist,num,A,B,C,DJ,DJK,DK,dJ,dK,fixed_flags))
 
     for num in range(processors):
         vars()["p%s"%str(num)].start()
@@ -462,5 +506,3 @@ def autofit_NS(job_name,u_A,u_B,u_C,A,B,C,DJ,DJK,DK,dJ,dK,freq_high,freq_low,int
     autofit_NS_success_flag = "Success"
 
     return autofit_NS_success_flag
-
-    
