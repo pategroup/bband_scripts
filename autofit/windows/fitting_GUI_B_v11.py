@@ -215,6 +215,7 @@ class VSlider(AxesWidget):
 
 
 def on_key( event ):
+    print event.key
     global exp_label,pred_label
     if event.key=="q" or event.key=="Q":
         if refine_flag==0:
@@ -272,6 +273,7 @@ def on_key( event ):
             check2.labels[2].set_text(str(difference_list2[2][1])+" | "+str(difference_list2[2][2]))
             #trans_1_plt.set_data([difference_list2[1][1],difference_list2[2][1],difference_list2[0][1]],[difference_list2[1][2],difference_list2[2][2],difference_list2[0][2]])
             trans_2_plt.set_data(difference_list2[0][1],difference_list2[0][2])
+            plt.show()
         #print difference_list
         marker = 0
         new_picked_list = []
@@ -379,8 +381,39 @@ def on_key( event ):
             pass
     if event.key=="w" or event.key=="W":
         assign_pushed(event)
+    if event.key=="delete":
+        check_select = pred_label.split(" | ")
+
+        counter =0
+        for line in fit_list:
+            if line[1]==check_select[0] and line[2]==check_select[1]:
+                
+                del(fit_list[counter])
+            counter+=1
+        data = cat_reader()
+        print fit_list
+        s_b = []
+        t_b = []
+        s_a = []
+        t_a = []
+        for y in fit_list:
+            for x in data:
+    
             
-        
+                if x[2]==y[1] and x[3]==y[2]:
+                    s_b.append(0.0)
+                    s_b.append(str(10**float(x[1]))) 
+                    s_b.append(0.0)
+                    t_b.append(float(x[0])-0.0001)
+                    t_b.append(x[0])
+                    t_b.append(float(x[0])+0.0001)  
+                    print 'test'
+            s_a.append(y[5])
+            t_a.append(y[4])
+        triples_plt.set_data(t_b,s_b)
+    
+        trans_1_plt.set_data(t_a,s_a)
+        plt.draw()
          #print picked_list
 def int_writer(u_A='1.0',u_B='0.0',u_C='0.0', J_min="00", J_max='20', inten="-10.0",Q_rot="300000",freq="25.8", temp="298"):#generates SPCAT input file
     input_file = ""
@@ -894,8 +927,8 @@ def assign_pushed(event):
         if len(fit_list)>0:
             for line in fit_list:
                 if line[1]==check_select[0] and line[2]==check_select[1]:
-                    
-                    counter =1
+                    fit_list[counter] = (check_select[2],check_select[0],check_select[1],check_select[3],assign_freq,assign_inten)
+                    counter +=1
                     #fit_list[counter]=(check_select[2],check_select[0],check_select[1],check_select[3],assign_freq,assign_inten)
                 
         if counter==0:
@@ -1267,7 +1300,7 @@ def initialize(A,B,C,dA,dB,dC,DJ,DJK,DK,dJ,dK,ua,ub,uc,f_lower,f_upper,T,J_max,l
     global text_box
     #global text_box2
     text_box = plt.text(-1,10, "")
-    text_box2 = plt.text(-1,23, "Refine Mouse Selection:                             Select transitions by pushing 'q' and then clicking in the predicted/exp spectrum, then assign transitions by pushing 'assign' or 'w'  ")
+    text_box2 = plt.text(-1,23, "Refine Mouse Selection:             Select transitions by pushing 'q' and then clicking in the predicted/exp spectrum, then assign transitions by pushing 'assign' or 'w'  ")
     #plt.show() 
 def refine_main(A,B,C,dA,dB,dC,DJ,DJK,DK,dJ,dK,ua,ub,uc,dua,dub,duc,f_lower,f_upper,T,J_max,last_times_picked_list):
     #matplotlib.use('TkAggx')
@@ -1456,5 +1489,5 @@ def refine_main(A,B,C,dA,dB,dC,DJ,DJK,DK,dJ,dK,ua,ub,uc,dua,dub,duc,f_lower,f_up
     global text_box
     #global text_box2
     text_box = plt.text(-1,8, "")
-    text_box2 = plt.text(-1,23, "Refine Mouse Selection:                             Select transitions by pushing 'q' and then clicking in the predicted/exp spectrum, then assign transitions by pushing 'assign' or 'w'  ")
+    text_box2 = plt.text(-1,23, "Refine Mouse Selection:                 Select transitions by pushing 'q' and then clicking in the pred/exp spectrum, assign transitions by pushing 'assign' or 'w', remove by pushing 'delete'  ")
     #plt.show()   
