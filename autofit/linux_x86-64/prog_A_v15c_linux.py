@@ -704,7 +704,7 @@ def triples_gen(window_decision,trans_1_uncert,trans_2_uncert,trans_3_uncert,fre
             num_of_triples = len(trans_1_peaks)*len(trans_2_peaks)*len(trans_3_peaks) #this tells you how many entries there will be in the all_combo_list
             
             global tot
-            tot = int(num_of_triples)
+            tot = int(num_of_triples) # Progress bar counter
 
             estimated_time = float(num_of_triples) * scale_factor
 
@@ -1544,9 +1544,11 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
                 break
         read_fit = (const_list[0],const_list[1], const_list[2],freq_list)
         triples_counter +=1
+
         global cur
         cur += 1
-        update_progress(cur)
+        update_progress(cur) # Call progress bar
+
         constants = read_fit[0:3]
         freq_17 = read_fit[3]
         freq_17.reverse()
