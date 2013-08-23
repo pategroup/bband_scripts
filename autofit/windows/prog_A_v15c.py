@@ -26,6 +26,9 @@ Please comment any changes you make to the code here:
 
 version 15c:
 -Added a progress bar. Notes are made in the comments above the definition for the bar, update_progress().
+-Fixed an issue with reading var files that depended on which version of SPCAT was in use.  Also added a line to fix an 
+unusual edge case with omc_inten that would occasionally lead to a crash for particularly poor combinations of predicted
+and actual peak positions.
 
 version 15b:
 
@@ -1519,14 +1522,14 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
 
         fh_var = open("default%s.var"%(str(file_num)))
         for line in fh_var:
-            if line[8:13] == "10000":
-                temp_A = float(line[15:37])
+            if line.split()[0] == "10000":
+                temp_A = float(line.split()[1])
                 const_list.append("%.3f" %temp_A)
-            if line[8:13] == "20000":
-                temp_B = float(line[15:37])
+            if line.split()[0] == "20000":
+                temp_B = float(line.split()[1])
                 const_list.append("%.3f" %temp_B)
-            if line[8:13] == "30000":
-                temp_C = float(line[15:37])
+            if line.split()[0] == "30000":
+                temp_C = float(line.split()[1])
                 const_list.append("%.3f" %temp_C)
 
         fh_fit = open("default%s.fit"%(str(file_num)))
@@ -1597,6 +1600,7 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
                 peak = p_8
                 regular_counter +=1
             old_omc = 100000.0
+            omc_inten = 100000.0
             for peak_freq,peak_inten in peaks_section: #find nearest peak in actual spectrum to the given top 20 peak
                 omc = abs(current_peak-float(peak_freq))
                 omc_low = abs(current_peak-float(peak))
