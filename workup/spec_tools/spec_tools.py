@@ -31,23 +31,38 @@
 #        * This module was developed for Python 2.7.x *           |
 # ----------------------------------------------------------------\
 #                 TO DO (will be removed gradually)               |
-# ARB_PULSE_GEN, FID_FFT, SPECTROGRAM, PEAKPICK (SPLINE/PT-SP-LIM)|
+# ARB_PULSE_GEN, SPECTROGRAM, PEAKPICK (SPLINE/PT-SP-LIM)         |
 # ISO_SCALE, SPEC_CUT, SPCAT_WRITER, LAZY_QUAD_CONVERT, GAIN_CORR |
 # (ROOM FOR MORE TO ADD LATER)                                    |
+#                                                                 |
+#                       Specific comments:                        |
+# ROT_COORDS:                                                     |
+#    Currently rot_coords requires a file input. Adding           | 
+# functionality where you can input a 4-column array geometry     |
+# directly needs to be added.                                     |
+#                                                                 |
+# FFT:                                                            |
+#	 Currently fft requires a file input. It should be straight-  |
+# forward to add functionality where a 1-column FID array can     |
+# be inputted and FFTed.                                          |
 # =============================================================== \
 
 # IMPORT BLOCK #
 from numpy import *
+from scipy import *
+import scipy.fftpack as sfft
 import matplotlib as mpl
 import fileinput
 import re, sys
 import os
+from matplotlib import pyplot as plt
 # END IMPORT BLOCK #
 
 # METADATA BLOCK #
 __version__ = "1.0_WIP"
 __author__ = "Nathan Seifert"
 __license__ = "GPLv2"
+# END METADATA BLOCK #
 
 
 # ======================== ROTATE_COORDS ======================= \
@@ -218,11 +233,23 @@ def _rotate(coords,rotmat):
 
 	return coords_mod
 
-def _write(const,rotmat,syms,rot_coordmat,filename):
+# Rotates a 3-member array of dipoles into the principal axis
+def _rotatedipoles(dipoles,rotmat):
+	dipoles = dot(dipoles,rotmat)
+	return dipoles
+
+
+
+def _write(const,rotmat,syms,rot_coordmat,dipoles,filename):
 	set_printoptions(suppress=True)
 	filename_out = filename+"_out.geom"
 	file = open(filename_out,"wb")
 	file.write("Input file name: "+filename+"\n")
+
+	# Writes rotated dipoles
+	if dipoles[0] != 0 or dipoles[1] != 0 or dipoles[2] != 0:
+		file.write("--------------\n"+"DIPOLES (in Debye)\n"+"--------------\n\n"+"ua: "+str(dipoles[0])+"	"+"ub: "+str(dipoles[1])+"	"+"uc: "+str(dipoles[2])+"\n\n")
+
 	file.write("--------------\n"+"ROTATIONAL CONSTANTS\n"+"--------------\n\n"+"A : "+str(const[0])+" MHz "+"   "+"A : "+str(const[1])+" MHz "+"   "+"C : "+str(const[2])+" MHz "+"   \n\n"+"--------------\n"+"ROTATION MATRIX\n"+"--------------\n\n")
 
 	# Writes rotation matrix
@@ -244,7 +271,7 @@ def _write(const,rotmat,syms,rot_coordmat,filename):
 
 # Main routine. Coords_matrix is a text filename containing four columns, as specified
 # in the usage at the beginning of the ROTATE_COORDS block
-def rot_coords(coords_matrix, savetofile=1, ua=0.0, ub=0.0, uc=0.0):
+def rot_coords(coords_matrix, ua=0.0, ub=0.0, uc=0.0,savetofile=1):
 
 	#set_printoptions(suppress=True)
 	symbols = genfromtxt(coords_matrix,dtype=str,usecols=(0))
@@ -261,8 +288,19 @@ def rot_coords(coords_matrix, savetofile=1, ua=0.0, ub=0.0, uc=0.0):
 
 	constants,rotmatr = _calcabc(_comshift(coordmat))
 	rotcoords = _rotate(coordmat,rotmatr)
+	dipolestack = zeros(3)
+
+	# dipole rotation -- ua, ub or uc must be nonzero for this to work! Default is all zero.
+	if ua != 0.0 or ub != 0.0 or uc != 0.0:
+		dipolestack[0] = ua
+		dipolestack[1] = ub
+		dipolestack[2] = uc
+		#print dipolestack
+		dipolestack = _rotatedipoles(dipolestack,rotmatr) 
+		#print dipolestack
+
 	if savetofile == 1:
-		_write(constants,rotmatr,symbols,rotcoords,coords_matrix)
+		_write(constants,rotmatr,symbols,rotcoords,dipolestack,coords_matrix)
 		return constants,rotmatr
 	else:
 		return constants,rotmatr
@@ -271,7 +309,74 @@ def rot_coords(coords_matrix, savetofile=1, ua=0.0, ub=0.0, uc=0.0):
 # Testing block for rotate_coords #
 
 #filename = input("Enter a coordinate file name: ")
-#rot_coords(filename)
+#rot_coords(filename,0.0,0.0,0.0,1)
 #set_printoptions(suppress=True)
 
 # =============     END ROTATE_COORDS BLOCK     ================ #
+
+
+# ========================== FFT =============================== \
+# This routine will take a time-domain data file and Fourier     |
+# transform it into frequency space. In general, a Kaiser-Bessel |
+# window will be applied to the Fourier transform.               |
+# FFT() will accept FIDs where the amplitude information is in   |
+# the LAST column of the data file. For instance, a 1-column FID |
+# will be read correctly, as well as the 5-column format that    |
+# is outputted by default on the Tektronix DPO7000-series        |
+# oscilloscopes.                                                 |
+#----------------------------------------------------------------\
+#							USAGE:							     |
+# fft(filename, start_freq, end_freq, srate, gaincorr,gain_mat)  |
+#                                                                |
+# filename = string of the target FID filename                   |
+# start_freq, end_freq = frequency bounds in MHz                 |
+# srate = sampling rate in samples*Hz, so 50 Gs/s = 50E9         |
+# gaincorr = [default is 0] set to 1 if you want to gain correct |
+# gain_mat = array with length equivalent to # pts in FT with    |
+# gain correction information (GAIN_COR can generate this array) |
+# ===============================================================\
+
+
+# =================     BEGIN FFT BLOCK     ==================== #
+
+def fft(filename, start_freq, end_freq, srate,gaincorr=0,gaincorr_mat=None):
+	data = open(filename)
+	time_domain = []
+
+	for row in data:
+		temp = row.split()
+		time_domain.append(float(temp[size(temp)-1]))
+	td_size = size(time_domain)
+	print "The size of the time domain file is: "+str(td_size)
+
+	# Kaiser-Bessel window with a beta of 9.5 is used.
+	# Replace this with another window if you don't want to use it.
+	window = kaiser(td_size,9.5)
+
+	for i, row in enumerate(time_domain):
+		time_domain[i] = row*window[i]
+
+	temp = zeros(td_size*2)
+	temp[0:td_size] = time_domain
+
+	fft = abs(sfft.fft(temp))/100
+	freq = (sfft.fftfreq(size(temp),1/srate))/1E6
+
+	out = zeros((size(freq),2))
+	for i, row in enumerate(freq):
+		if row >= start_freq and row <= end_freq:
+			out[i,0] = freq[i]
+			out[i,1] = fft[i]
+			if gaincorr == 1:
+				out[i,1] = fft[i]*gaincorr_mat[i,1]
+
+	return out
+
+# Testing block for fft() #
+#filename = input("Input a FID file name")
+#spectrum = fft("fid",6000,18000,50E9)
+#print shape(spectrum)
+#plt.plot(spectrum[:,0],spectrum[:,1],'blue',linewidth=0.8)
+#plt.grid(True)
+#plt.show()
+# =================     END FFT BLOCK     ===================== #
