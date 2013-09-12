@@ -250,7 +250,7 @@ def _write(const,rotmat,syms,rot_coordmat,dipoles,filename):
 	if dipoles[0] != 0 or dipoles[1] != 0 or dipoles[2] != 0:
 		file.write("--------------\n"+"DIPOLES (in Debye)\n"+"--------------\n\n"+"ua: "+str(dipoles[0])+"	"+"ub: "+str(dipoles[1])+"	"+"uc: "+str(dipoles[2])+"\n\n")
 
-	file.write("--------------\n"+"ROTATIONAL CONSTANTS\n"+"--------------\n\n"+"A : "+str(const[0])+" MHz "+"   "+"A : "+str(const[1])+" MHz "+"   "+"C : "+str(const[2])+" MHz "+"   \n\n"+"--------------\n"+"ROTATION MATRIX\n"+"--------------\n\n")
+	file.write("--------------\n"+"ROTATIONAL CONSTANTS\n"+"--------------\n\n"+"B : "+str(const[0])+" MHz "+"   "+"A : "+str(const[1])+" MHz "+"   "+"C : "+str(const[2])+" MHz "+"   \n\n"+"--------------\n"+"ROTATION MATRIX\n"+"--------------\n\n")
 
 	# Writes rotation matrix
 	for i in range(shape(rotmat)[0]):
