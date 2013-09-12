@@ -126,7 +126,7 @@ def rot_coords(coords,rotmat):
 def write(const,rotmat,syms,rot_coordmat, filename):
 	file = open(filename,"wb")
 	file.write("Input file name: "+sys.argv[-1]+"\n")
-	file.write("--------------\n"+"ROTATIONAL CONSTANTS\n"+"--------------\n\n"+"A : "+str(const[0])+" MHz "+"   "+"A : "+str(const[1])+" MHz "+"   "+"C : "+str(const[2])+" MHz "+"   \n\n"+"--------------\n"+"ROTATION MATRIX\n"+"--------------\n\n")
+	file.write("--------------\n"+"ROTATIONAL CONSTANTS\n"+"--------------\n\n"+"A : "+str(const[0])+" MHz "+"   "+"B : "+str(const[1])+" MHz "+"   "+"C : "+str(const[2])+" MHz "+"   \n\n"+"--------------\n"+"ROTATION MATRIX\n"+"--------------\n\n")
 	
 	#Writes rotation matrix
 	for i in range(shape(rotmat)[0]):
