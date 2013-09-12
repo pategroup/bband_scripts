@@ -31,7 +31,7 @@
 #        * This module was developed for Python 2.7.x *           |
 # ----------------------------------------------------------------\
 #                 TO DO (will be removed gradually)               |
-# ARB_PULSE_GEN, SPECTROGRAM, PEAKPICK (SPLINE/PT-SP-LIM)         |
+# ARB_PULSE_GEN, SPECTROGRAM                                      |
 # ISO_SCALE, SPEC_CUT, SPCAT_WRITER, LAZY_QUAD_CONVERT, GAIN_CORR |
 # (ROOM FOR MORE TO ADD LATER)                                    |
 #                                                                 |
@@ -45,17 +45,26 @@
 #	 Currently fft requires a file input. It should be straight-  |
 # forward to add functionality where a 1-column FID array can     |
 # be inputted and FFTed.                                          |
+#                                                                 |
+# PEAKPICK:                                                       |
+# 	I'm pretty happy about where this is. Again, there needs to   |
+# be some functionality where a spectrum as a numpy array in mem  |
+# can be pushed to the routine, without having to specify a file- |
+# name.                                                           |
 # =============================================================== \
 
 # IMPORT BLOCK #
 from numpy import *
 from scipy import *
+from scipy.interpolate import *
 import scipy.fftpack as sfft
 import matplotlib as mpl
 import fileinput
+import math
 import re, sys
 import os
 from matplotlib import pyplot as plt
+import time
 # END IMPORT BLOCK #
 
 # METADATA BLOCK #
@@ -380,3 +389,145 @@ def fft(filename, start_freq, end_freq, srate,gaincorr=0,gaincorr_mat=None):
 #plt.grid(True)
 #plt.show()
 # =================     END FFT BLOCK     ===================== #
+
+
+# ========================== PEAKPICK ========================= \
+# This routine will take an input spectrum and output an array  |
+# of the frequencies and intensities of every transition above  |
+# the given intensity threshold.                                |
+# There are two subroutines that do essentially the same thing, |
+# but one, _ppspline() first splines the spectrum with a given  |
+# frequency resolution and then peakpicks the spectrum. This    |
+# has the advantage of improving the center-frequency resol-    |
+# ution by a significant factor if the splining resolution is   |
+# small compared to the point spacing of your spectrum.         |
+# ------------------------------------------------------------- \
+#							USAGE:                              |
+# peakpick(filename,threshold,type,resolution)                  |
+#                                                               |
+# filename = input filename as string                           |
+# threshold = a float indicating the *minimum* intensity a peak |
+# can be.                                                       |
+# resolution = splining resolution in MHz. Default is 2 kHz.    |
+# Routine ignores this if "type" is set to 0.                   |
+# type = can be 0 or 1. Default is 0. Choose 1 if you want      |
+# a splined peakpick.                                           |
+# ============================================================= \
+
+# =================     BEGIN PEAKPICK BLOCK     ==================== #
+
+def peakpick(filename,threshold,type = 0,resolution = 0.002):
+	if type == 0:
+		return _pp(filename,threshold)
+	if type == 1:
+		return _ppspline(filename,threshold,resolution)
+
+# Point-spacing resolution-limited peakpick
+def _pp(filename, threshold):
+	spec = loadtxt(filename)
+	peaks = []
+	for i in range(0, len(spec)-1):
+		if float(spec[i,1]) > threshold and float(spec[i,1]) > float(spec[(i-1),1]) and float(spec[i,1]) > float(spec[(i+1),1]):
+			peaks.append(spec[i])
+	#print "this shit is this long:"+str(len(peaks))
+	picks = zeros((len(peaks),2))
+	for i, row in enumerate(peaks):
+		picks[i,0] = row[0]
+		picks[i,1] = row[1]
+	return picks
+
+# Two steps: spline the spectrum completely, then do the same as _pp
+# Routine adapted from Steve Shipman's code in autofit
+def _ppspline(filename,threshold,resolution):
+	spec = loadtxt(filename)
+
+	x = spec[:,0]
+	y = spec[:,1]
+
+	old_res = (x[-1]-x[0])/len(spec)
+	scale = old_res/resolution
+
+	new_length = int(math.floor(scale*len(spec)))
+
+	tick = splrep(x,y,s=0)
+	xnew = arange(x[0],x[-1],resolution)
+	ynew = splev(xnew,tick,der=0)
+
+	output = column_stack((xnew,ynew))
+	peaks = []
+	for i in range(0,len(output)-1):
+		if float(output[i,1]) > threshold and float(output[i,1]) > float(output[(i-1),1]) and float(output[i,1]) > float(output[(i+1),1]):
+			peaks.append(output[i])
+	picks = zeros((len(peaks),2))
+	#print "Length of the peakpick is: " + str(len(peaks))
+	for i, row in enumerate(peaks):
+		picks[i,0] = row[0]
+		picks[i,1] = row[1]
+	#print "The length of the numpy array peakpick is: "+str(size(picks))
+	return picks
+
+
+
+#  Test block for peakpick() #
+#pick = peakpick("spec",0.01, 1)
+#print str(type(pick))
+
+#for i in range(0,10):
+#	print str(pick[i,0])+"		"+str(pick[i,1])
+
+# =================     END PEAKPICK BLOCK     ==================== #
+
+
+
+# ========================== SPEC_CUT ========================= \
+# This routine will take two files -- a 2-column spectrum and a |
+# one-column list of frequencies -- and cut out blocks in the   |
+# experimental spectrum with center frequencies equivalent to   |
+# those in the one-column list with an inputted constant width. |
+# For instance, if a target cut transition has frequency 10321  |
+# MHz, and the inputted width is 200 kHz, then the output       |
+# spectrum will have 10320.8-10321.2 MHz set to 0 intensity.    |
+# ------------------------------------------------------------- \
+
+# =================		BEGIN CUT BLOCK    ==================== #
+
+def cut(spectrum_file,linelist_file,width):
+	spec = loadtxt(spectrum_file)
+	lnlist = loadtxt(linelist_file)
+
+	specstart = spec[0,0]
+	step_size = (spec[100,0]-spec[0,0])/100 # This is an arbitrary choice.
+
+	mask = ones(shape(spec)[0])
+	for i, line in enumerate(lnlist):
+		freq1 = lnlist[i] - (width/2)
+		freq2 = lnlist[i] + (width/2)
+
+		i1 = math.floor((freq1-specstart)/step_size)+1
+		i2 = math.floor((freq2-specstart)/step_size)-1
+
+		# Sets the bounds of a cut to end/start of spectrum if cut goes over start/stop of spec
+		if i1 < spec[0,0]:
+			i1 = spec[0,0]
+		if i2 > spec[0,0]:
+			i2 = spec[-1,0]
+
+		i1 = int(i1)
+		i2 = int(i2)
+
+		for i in range(i1,i2):
+			mask[i] = 0
+
+	mask_final = column_stack((spec[:,0],mask))
+	cut_spec = spec
+	for i, line in enumerate(spec):
+		cut_spec[i,1] = cut_spec[i,1] * mask_final[i,1]
+
+	return cut_spec
+
+# Test block for cut()
+#cutspec = cut("spec","cuts",500)
+#plt.plot(cutspec[:,0],cutspec[:,1])
+#plt.show()
+
+# =================		END CUT BLOCK    ==================== #
