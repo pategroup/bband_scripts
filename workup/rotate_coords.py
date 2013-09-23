@@ -155,11 +155,15 @@ def main():
 	out_file_name = os.path.splitext(sys.argv[-1])[0]+"_out"+".geom"
 	print "--------------------"
 	for line in fileinput.input(): # Collects X,Y,Z,M into separate arrays from input
-		a.append(line.split()[1]) 
-		b.append(line.split()[2])
-		c.append(line.split()[3])
-		symbols.append(line.split()[0])
-		mass.append(masses(line.split()[0]))
+		
+		if not line.split(): # This will return true if the string is empty
+			continue
+		else:
+			a.append(line.split()[1]) 
+			b.append(line.split()[2])
+			c.append(line.split()[3])
+			symbols.append(line.split()[0])
+			mass.append(masses(line.split()[0]))
 	coordmat = zeros((size(mass),4)) # Empty matrix for X,Y,Z,M matrix
 	for i,row in enumerate(mass):
 		coordmat[i,0] = row
