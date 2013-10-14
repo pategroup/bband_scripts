@@ -187,7 +187,6 @@ for i in range(size(originalmatrix[:,0])):
         temp2.append(n15[2])
         thr_isotop.append(temp2)
     if raw3dmatrix[i,0]==27.9769265325:
-        print('i got here nigga')
         tempraw3dmatrix = originalmatrix.copy()
         tempraw3dmatrix[i,0]=28.976494700
         tempraw3dmatrix=distancefromcenter(tempraw3dmatrix)
@@ -199,7 +198,6 @@ for i in range(size(originalmatrix[:,0])):
         temp3.append(si29[2])
         thr_isotop.append(temp3)
     if raw3dmatrix[i,0]==27.9769265325:
-        print('i got here nigga2')
         tempraw3dmatrix = originalmatrix.copy()
         tempraw3dmatrix[i,0]=29.97377017
         tempraw3dmatrix=distancefromcenter(tempraw3dmatrix)
