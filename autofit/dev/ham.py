@@ -108,7 +108,7 @@ def freq_single(QN, A,B,C,DJ,DJK,DK,subdj,subdk):
 	E_lower = sort(E_lower)
 
 	return float(E_upper[ind_upper]-E_lower[ind_lower])
-def freq_all(QN_array, A,B,C,{p}):
+def freq_all(QN_array, {p}):
 	output = zeros((shape(QN_array)[0],1))
 	for i in range(shape(QN_array)[0]):
 		output[i] = freq_single(QN_array[i],A,B,C,DJ,DJK,DK,subdj,subdk)
@@ -116,11 +116,15 @@ def freq_all(QN_array, A,B,C,{p}):
 ''')
 
 def make_func(**kwargs):
-	params = set(('DJ','DJK','DK','subdj','subdk')).difference(kwargs.keys())
+	#print(kwargs.keys())
+	params = set(('A','B','C','DJ','DJK','DK','subdj','subdk')).difference(kwargs.keys())
+	#print params
+	#print funcstr.format(p=','.join(params))
 	exec funcstr.format(p=','.join(params)) in kwargs
 	return kwargs['freq_all']
 
 # ------------ END DYNAMICALLY GENERATED FUNCTIONAL FOR CURVE_FIT ---------------- #
+
 	
 # ----------------------- BEGIN PRINTING/STATS ROUTINES ------------------------- #	
 	
@@ -144,7 +148,7 @@ def omc(obs, calc):
         omc[i] = "{0:.2f}".format((obs[i]-calc[i])*1000)
     return omc
 
-def report(popt,covar,trans,freqs):
+def report(popt,covar, dist, trans,freqs):
 	
 	A_fit = popt[0]
 	B_fit = popt[1]
@@ -162,7 +166,12 @@ def report(popt,covar,trans,freqs):
 	switch = int(digitfind(B_stderr))
 	print('B (MHz): ' + str(round(B_fit,switch+2)) + '(' + "{0:.0f}".format(float(B_stderr)*10**(switch+2)) + ')')
 	switch = int(digitfind(C_stderr))
-	print('B (MHz): ' + str(round(C_fit,switch+2)) + '(' + "{0:.0f}".format(float(C_stderr)*10**(switch+2)) + ')')
+	print('C (MHz): ' + str(round(C_fit,switch+2)) + '(' + "{0:.0f}".format(float(C_stderr)*10**(switch+2)) + ')')
+	print('DJ (kHz): ' + "{0:.3f}".format(dist[0]*1000))
+	print('DJK (kHz): ' + "{0:.3f}".format(dist[1]*1000))
+	print('DK (kHz): ' + "{0:.3f}".format(dist[2]*1000))
+	print('dJ (kHz): ' + "{0:.3f}".format(dist[3]*1000))
+	print('dK (kHz): ' + "{0:.3f}".format(dist[4]*1000))
 	
 	# Calculate RMS errors + OMC 
 	calc_freqs = freq_all(trans,A_fit,B_fit,C_fit)
@@ -182,9 +191,9 @@ def report(popt,covar,trans,freqs):
 # ----------------------------- TESTING BLOCK ---------------------- #
 
 # Hexanal, conformer I
-A = 9769.62213
-B = 868.846659
-C = 818.518746
+rot_A = 9769.62213
+rot_B = 868.846659
+rot_C = 818.518746
 d1 = 0.000047239 #DJ
 d2 = -0.0008991 #DJK
 d3 = 0.023173 #DK
@@ -192,7 +201,7 @@ d4 = 5.0298E-06 #dJ
 d5 = 0.000343 #dK
 distortion = array([d1,d2,d3,d4,d5])
 
-guess_constants = array([A,B,C])
+guess_constants = array([rot_A,rot_B,rot_C])
 trans = array([[4,0,4,3,0,3],[5,1,5,4,1,4],[5,0,5,4,0,4],[1,1,0,1,0,1],[2,1,2,1,0,1],[8,2,7,7,2,6],[8,2,6,7,2,5]])
 freqs = array([6747.32023,8310.06771,8432.54591,8951.08513,12225.16434,13496.27440,13514.14580])
 
@@ -200,7 +209,7 @@ freqs = array([6747.32023,8310.06771,8432.54591,8951.08513,12225.16434,13496.274
 freq_all = make_func(DJ=d1,DJK=d2,DK=d3,subdj=d4,subdk=d5)
 
 popt, pcov = curve_fit(freq_all,trans,freqs,guess_constants, sigma=None)
-report(popt,pcov, trans,freqs)
+report(popt,pcov, distortion, trans,freqs)
 
 # ----------------------------- END TESTING BLOCK ---------------------- #
 
