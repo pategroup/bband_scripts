@@ -129,6 +129,7 @@ def report(popt,covar,trans,freqs):
 
 # Test block
 # Hexanal, conformer I
+
 A = 9769.62213
 B = 868.846659
 C = 818.518746
@@ -139,12 +140,9 @@ subdj = 5.0298E-06
 subdk = 0.000343
 guess_constants = array([A,B,C])
 
-t1 = time.time()
+
 trans = array([[4,0,4,3,0,3],[5,1,5,4,1,4],[5,0,5,4,0,4],[1,1,0,1,0,1],[2,1,2,1,0,1],[8,2,7,7,2,6],[8,2,6,7,2,5]])
-#print freq_all(trans,guess_constants)
 freqs = array([6747.32023,8310.06771,8432.54591,8951.08513,12225.16434,13496.27440,13514.14580])
-#print freqs
-set_printoptions(precision=4)
 popt, pcov = curve_fit(freq_all,trans,freqs,guess_constants, sigma=None)
 report(popt,pcov, trans,freqs)
 
