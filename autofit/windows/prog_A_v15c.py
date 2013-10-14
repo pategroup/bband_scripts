@@ -26,7 +26,6 @@ Please comment any changes you make to the code here:
 
 version 15c:
 -Added a progress bar. Notes are made in the comments above the definition for the bar, update_progress().
-NOTE: CURRENTLY THE PROGRESS BAR IS BROKEN IN WINDOWS! WORKS IN LINUX THOUGH!!!
 -Fixed an issue with reading var files that depended on which version of SPCAT was in use.  Also added a line to fix an 
 unusual edge case with omc_inten that would occasionally lead to a crash for particularly poor combinations of predicted
 and actual peak positions.
@@ -708,7 +707,7 @@ def triples_gen(window_decision,trans_1_uncert,trans_2_uncert,trans_3_uncert,fre
             num_of_triples = len(trans_1_peaks)*len(trans_2_peaks)*len(trans_3_peaks) #this tells you how many entries there will be in the all_combo_list
             
             global tot
-            tot = int(num_of_triples) # Progress bar counter
+            tot = int(num of triples) # Progress bar counter
 
             estimated_time = float(num_of_triples) * scale_factor
 
@@ -1548,9 +1547,10 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
                 break
         read_fit = (const_list[0],const_list[1], const_list[2],freq_list)
         triples_counter +=1
-        #global cur
-        #cur += 1
-        #update_progress(triples_counter) # Call progress bar
+
+        global cur
+        cur += 1
+        update_progress(cur) # Call progress bar
 
         constants = read_fit[0:3]
         freq_17 = read_fit[3]
@@ -1656,7 +1656,7 @@ def fit_triples(list_a,list_b,list_c,trans_1,trans_2,trans_3,top_17,peaklist,fil
     fh_final.write(output_file)
     fh_final.close()
     os.system("sort -r 'final_output%s.txt'>sorted_final_out%s.txt"%(str(file_num),str(file_num)))#sorts output by score
-"""
+
 def update_progress(progress):
     global count
     if count == 0:
@@ -1671,16 +1671,17 @@ def update_progress(progress):
         count = 0
     sys.stdout.write('\r'+str(progress*processors)+'/'+str(tot)+' :: ' + '[{0}] {1}%'.format('#'*((progress*processors)/(int(tot)/10)),str(int((progress*processors)/float(tot)*100)))+' :: '+str(int(veloc*processors))+' Hz ::') # using print() prints new lines
     sys.stdout.flush()
-"""
+ 
 if __name__ == '__main__': #multiprocessing imports script as module
     
-    ## The following block sets the parameters for the progress bar during autofit run
-    #tot = 0
-    #t1 = time.time()
-    #t2 = time.time()
-    #veloc = 0
-    #count = 0
-    #cur = 0
+    ## The following block sets the parameters for the progress bar during autofit run 
+    tot = 0
+    t1 = time.time()
+    t2 = time.time()
+    veloc = 0
+    count = 0
+    cur = 0
+    ## End progress bar parameters
 
     u_A = "0.0"#<<<<<<<<<<<<<set default value here
     u_B = "1.0"#<<<<<<<<<<<<<set default value here
