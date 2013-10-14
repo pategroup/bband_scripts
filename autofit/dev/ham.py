@@ -24,7 +24,7 @@ def ham(J_MAX, rot_A, rot_B, rot_C, DJ,DJK,DK,subdj,subdk):
 			l =  i + J_MAX
 			m = j + J_MAX
 			if l == m:
-				ham[l,m] = 0.5*(rot_B+rot_C)*(J_MAX*(J_MAX+1))+(rot_A-(rot_B+rot_C)/2.0)*(i**2)-(DJ*J_MAX**2*(J_MAX+1)**2+DJK*i**2*J_MAX*(J_MAX+1)*DK*i**4)
+				ham[l,m] = 0.5*(rot_B+rot_C)*(J_MAX*(J_MAX+1))+(rot_A-(rot_B+rot_C)/2.0)*(i**2)-(DJ*J_MAX**2*(J_MAX+1)**2+DJK*i**2*J_MAX*(J_MAX+1)+DK*i**4)
 			elif m == l-2:
 				ham[l,m] = ((rot_B-rot_C)/4.0-J_MAX*(J_MAX+1)*subdj-(i**2+j**2)*subdk*0.5)*math.sqrt((J_MAX*(J_MAX+1)-(i-1)*(i-2))*(J_MAX*(J_MAX+1)-i*(i-1)))
 			elif m == l+2:
@@ -83,7 +83,7 @@ def ham(J_MAX, rot_A, rot_B, rot_C, DJ,DJK,DK,subdj,subdk):
 			l =  i + J_MAX
 			m = j + J_MAX
 			if l == m:
-				ham[l,m] = 0.5*(rot_B+rot_C)*(J_MAX*(J_MAX+1))+(rot_A-(rot_B+rot_C)/2.0)*(i**2)-(DJ*J_MAX**2*(J_MAX+1)**2+DJK*i**2*J_MAX*(J_MAX+1)*DK*i**4)
+				ham[l,m] = 0.5*(rot_B+rot_C)*(J_MAX*(J_MAX+1))+(rot_A-(rot_B+rot_C)/2.0)*(i**2)-(DJ*J_MAX**2*(J_MAX+1)**2+DJK*i**2*J_MAX*(J_MAX+1)+DK*i**4)
 			elif m == l-2:
 				ham[l,m] = ((rot_B-rot_C)/4.0-J_MAX*(J_MAX+1)*subdj-(i**2+j**2)*subdk*0.5)*math.sqrt((J_MAX*(J_MAX+1)-(i-1)*(i-2))*(J_MAX*(J_MAX+1)-i*(i-1)))
 			elif m == l+2:
@@ -170,7 +170,7 @@ def report(popt,covar,trans,freqs):
 	omcs = omc(freqs,calc_freqs)
 	print '\n'
 	print '------------ LINELIST ---------'
-	print('J Ka Kc  -->  J Ka Kc'+'	 '+'OBS FREQ.'+'    '+'CALC. FREQ'+'   '+'OMC (kHz)')
+	print('J Ka Kc  -->  J Ka Kc'+'	 '+'CALC. FREQ.'+'   '+'OBS. FREQ'+'    '+'OMC (kHz)')
 	
 	for i in range(shape(calc_freqs)[0]):
 		print(str(trans[i,0])+'  '+str(trans[i,1])+'  '+str(trans[i,2])+'  '+'-->'+'  '+str(trans[i,3])+'  '+str(trans[i,4])+'  '+str(trans[i,5])+'	'+"{:>10.3f}".format(calc_freqs[i])+'    '+"{:>10.3f}".format(freqs[i]))+'  '+"{:>10.2f}".format(omcs[i])
@@ -186,11 +186,11 @@ A = 9769.62213
 B = 868.846659
 C = 818.518746
 d1 = 0.000047239 #DJ
-d2 = -0.0006991 #DJK
-d3 =  0.023173 #DK
+d2 = -0.0008991 #DJK
+d3 = 0.023173 #DK
 d4 = 5.0298E-06 #dJ
 d5 = 0.000343 #dK
-#distortion = array([DJ,DJK,DK,subdj,subdk])
+distortion = array([d1,d2,d3,d4,d5])
 
 guess_constants = array([A,B,C])
 trans = array([[4,0,4,3,0,3],[5,1,5,4,1,4],[5,0,5,4,0,4],[1,1,0,1,0,1],[2,1,2,1,0,1],[8,2,7,7,2,6],[8,2,6,7,2,5]])
