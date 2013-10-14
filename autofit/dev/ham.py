@@ -29,21 +29,7 @@ def ham(J_MAX, rot_A, rot_B, rot_C, DJ=0.0, DJK=0.0, DK=0.0, subdj=0.0,subdk=0.0
 			else:
 				ham[l,m] = 0
 	return ham
-#def ham(J_MAX, rot):
-#	ham = zeros((2*J_MAX+1,2*J_MAX+1))
-#	for i in range(-1*(J_MAX),J_MAX+1):
-#		for j in range(-1*J_MAX,J_MAX+1):
-#			l =  i + J_MAX
-#			m = j + J_MAX
-#			if l == m:
-#				ham[l,m] = 0.5*(rot[1]+rot[2])*(J_MAX*(J_MAX+1))+(rot[0]-(rot[1]+rot[2])/2.0)*(i**2)-(rot[3]*J_MAX**2*(J_MAX+1)**2+rot[4]*i**2*J_MAX*(J_MAX+1)+rot[5]*i**4)
-#			elif m == l-2:
-#				ham[l,m] = ((rot[1]-rot[2])/4.0-J_MAX*(J_MAX+1)*rot[6]-(i**2+j**2)*rot[7]*0.5)*math.sqrt((J_MAX*(J_MAX+1)-(i-1)*(i-2))*(J_MAX*(J_MAX+1)-i*(i-1)))
-#			elif m == l+2:
-#				ham[l,m] = ((rot[1]-rot[2])/4.0-J_MAX*(J_MAX+1)*rot[6]-(i**2+j**2)*rot[7]*0.5)*math.sqrt((J_MAX*(J_MAX+1)-(i+1)*(i+2))*(J_MAX*(J_MAX+1)-i*(i+1)))
-#			else:
-#				ham[l,m] = 0
-#	return ham
+	
 
 # STANDARD NOTATION FOR A ROTATIONAL TRANSITION: For a given transition J'Ka'Kc' --> J''Ka''Kc'', 
 # these routines will consider the following structure for a set oftransitions:
@@ -80,6 +66,7 @@ def freq_all(QN_array, A,B,C,DJ=0.0,DJK=0.0,DK=0.0,subdj=0.0,subdk=0.0):
 def digitfind(num):
 		return len(search("\.(0*)",str(num)).group(1))
 
+# Calculates microwave RMS, in MHz
 def rms(obs,calc):
     omc_sq = zeros(shape(obs)[0])
     for i,line in enumerate(obs):        
@@ -88,6 +75,7 @@ def rms(obs,calc):
     sigma = sum(sqrt((n**-1)*omc_sq))
     return sigma
 
+# Calculates an array of OMC values for each assigned transition
 def omc(obs, calc):
     omc = zeros(shape(obs)[0])
     for i,line in enumerate(obs):        
@@ -107,7 +95,7 @@ def report(popt,covar,trans,freqs):
 	
 	print 'Fit Parameters:'
 	
-	switch = int(digitfind(A_stderr))
+	switch = int(digitfind(A_stderr)) # Determines the position after the decimal point of the first nonzero digit
 	print('A (MHz): ' + str(round(A_fit,switch+2)) + '(' + "{0:.0f}".format(float(A_stderr)*10**(switch+2)) + ')')
 	switch = int(digitfind(B_stderr))
 	print('B (MHz): ' + str(round(B_fit,switch+2)) + '(' + "{0:.0f}".format(float(B_stderr)*10**(switch+2)) + ')')
