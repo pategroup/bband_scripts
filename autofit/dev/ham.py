@@ -7,10 +7,11 @@
 
 from numpy import *
 from numpy import linalg as la
-from scipy.optimize import curve_fit
+from scipy.optimize	import curve_fit, leastsq
 import math
 import time
 from re import search
+import subprocess
 import textwrap
 
 # Given an int J_MAX, and three floats corresponding to the distortable rotor rotational constants
@@ -41,18 +42,17 @@ def ham(J_MAX, rot_A, rot_B, rot_C, DJ,DJK,DK,subdj,subdk):
 # freq_single calculates the frequency for a single transition.
 # QN is a numpy array with the row structure shown above for a given rotational transition
 def freq_single(QN, A,B,C,DJ,DJK,DK,subdj,subdk):
-	set_printoptions(precision=4)
 	Jupper = QN[0]
 	ind_upper = Jupper - QN[2] + QN[1]
 	Jlower = QN[3]
 	ind_lower = Jlower - QN[5] + QN[4]
 
 	H_upper = ham(Jupper, A,B,C,DJ,DJK,DK,subdj,subdk)
-	E_upper, trash = la.eig(H_upper)
+	E_upper = la.eigs(H_upper)
 	E_upper = sort(E_upper)
 
 	H_lower = ham(Jlower, A,B,C,DJ,DJK,DK,subdj,subdk)
-	E_lower, trash = la.eig(H_lower)
+	E_lower = la.eigs(H_lower)
 	E_lower = sort(E_lower)
 
 	return float(E_upper[ind_upper]-E_lower[ind_lower])
@@ -75,7 +75,8 @@ def freq_all(QN_array, A,B,C,DJ,DJK,DK,subdj,subdk):
 
 funcstr = textwrap.dedent('''\
 from numpy import *
-from numpy import linalg as la
+from scipy import linalg as la
+import time 
 def ham(J_MAX, rot_A, rot_B, rot_C, DJ,DJK,DK,subdj,subdk):
 	ham = zeros((2*J_MAX+1,2*J_MAX+1))
 	for i in range(-1*(J_MAX),J_MAX+1):
@@ -93,20 +94,19 @@ def ham(J_MAX, rot_A, rot_B, rot_C, DJ,DJK,DK,subdj,subdk):
 	return ham
 
 def freq_single(QN, A,B,C,DJ,DJK,DK,subdj,subdk):
-	set_printoptions(precision=4)
 	Jupper = QN[0]
 	ind_upper = Jupper - QN[2] + QN[1]
 	Jlower = QN[3]
 	ind_lower = Jlower - QN[5] + QN[4]
 
 	H_upper = ham(Jupper, A,B,C,DJ,DJK,DK,subdj,subdk)
-	E_upper, trash = la.eig(H_upper)
+	E_upper = la.eigvalsh(H_upper, check_finite=False)
 	E_upper = sort(E_upper)
 
 	H_lower = ham(Jlower, A,B,C,DJ,DJK,DK,subdj,subdk)
-	E_lower, trash = la.eig(H_lower)
+	E_lower = la.eigvalsh(H_lower, check_finite=False)
 	E_lower = sort(E_lower)
-
+	
 	return float(E_upper[ind_upper]-E_lower[ind_lower])
 def freq_all(QN_array, {p}):
 	output = zeros((shape(QN_array)[0],1))
@@ -186,12 +186,14 @@ def report(popt,covar, dist, trans,freqs):
 	print 'RMS Error: ' + "{0:.4f}".format(rms_error*10**3) + ' kHz'
 
 # ------------------------ END PRINTING/STATS ROUTINES -----------------=--------- #	
-
+def _general_function(params, xdata, ydata, function):
+    return function(xdata, *params) - ydata
 
 # ----------------------------- TESTING BLOCK ---------------------- #
 
 # Hexanal, conformer I
-rot_A = 9769.62213
+t1 = time.time()
+rot_A = 9769.72213
 rot_B = 868.846659
 rot_C = 818.518746
 d1 = 0.000047239 #DJ
@@ -204,12 +206,53 @@ distortion = array([d1,d2,d3,d4,d5])
 guess_constants = array([rot_A,rot_B,rot_C])
 trans = array([[4,0,4,3,0,3],[5,1,5,4,1,4],[5,0,5,4,0,4],[1,1,0,1,0,1],[2,1,2,1,0,1],[8,2,7,7,2,6],[8,2,6,7,2,5]])
 freqs = array([6747.32023,8310.06771,8432.54591,8951.08513,12225.16434,13496.27440,13514.14580])
+#trans = array([[4,0,4,3,0,3],[5,1,5,4,1,4],[5,0,5,4,0,4],[1,1,0,1,0,1]])
+#freqs = array([6747.32023,8310.06771,8432.54591,8951.08513])
 
 # ALLOCATES DYNAMIC FUNCTION FOR FITTING
 freq_all = make_func(DJ=d1,DJK=d2,DK=d3,subdj=d4,subdk=d5)
 
+t1 = time.time()
 popt, pcov = curve_fit(freq_all,trans,freqs,guess_constants, sigma=None)
 report(popt,pcov, distortion, trans,freqs)
+t2 = time.time()
+print 'The time it took to optimize the fit was: '+"{0:.4f}".format(t2-t1)+" seconds"
+
+t1 = time.time()
+a = subprocess.Popen("spfit default", stdout=subprocess.PIPE, shell=False)
+a.stdout.read()
+fh_fit = open("default.fit",'r')
+file_list = []
+for line in fh_fit:
+    file_list.append(line)
+
+freq_list = []
+for x in range(len(file_list)):
+    if file_list[-x][11:14] == "RMS":
+        rms_fit = float(file_list[-x][22:32]) #note - assumes RMS fit error is less than 1 GHz.  Change 22 to 21 if this is a problem.
+    if file_list[-x][5:6] == ":" and int(file_list[-x][3:5])>3:
+        freq_list.append(file_list[-x][60:71])
+    if file_list[-x][40:64]=="EXP.FREQ.  -  CALC.FREQ.":
+        break
+fh_fit.close()
+
+a = subprocess.Popen("spcat default", stdout=subprocess.PIPE, shell=False)
+fh = open("default.cat",'r')
+linelist = []
+for line in fh:
+    if line[8:9]==".": 
+        freq = line[3:13]
+        inten = line[22:29]
+        qnum_up = line[55:61]
+        qnum_low = line[67:73]
+        uncert = line[13:21]
+        if float(freq)> 2000.0 and float(freq)<16000.0:#<<<<<<<<<<<<<<<<<<<<
+            linelist.append((inten,freq, qnum_up, qnum_low,uncert))
+linelist.sort()
+fh.close()
+t2 = time.time()
+print 'The time it took to do stuff in SPFIT/CAT was: '+"{0:.4f}".format(t2-t1)+" seconds"
+
 
 # ----------------------------- END TESTING BLOCK ---------------------- #
 
