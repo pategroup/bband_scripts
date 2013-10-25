@@ -121,6 +121,7 @@ def cut_it(spec,peaks,noise_level):
 		bounds = None
 		if foo[1] != -1.0:
 			bounds = width(spec,foo,noise_level)
+		if foo[1] == -1.0:
 			n += 1
 		#print "for peak with freq " + str(peaks[i,0]) + " there is a width of "+ str((bounds[1]-bounds[0])*0.002) + "MHz"
 		if bounds != None:
@@ -180,7 +181,7 @@ def main(threshold=None):
 	print "======================================"+"\n\n"
 	print "Loading spectrum file: " + spec_file_name
 	t1 = time.time()
-	spec = genfromtxt(spec_file_name,dtype=float,delimiter=" ")
+	spec = genfromtxt(spec_file_name,dtype=float,delimiter="	")
 	t2 = time.time()
 	print "Loaded spectrum file. Time it took to load: "+str(round(float(t2-t1),3))+" seconds"+"\n"
 	#time.sleep(1.0) 
