@@ -624,5 +624,135 @@ def scale(geomfile,A_exp=0.0,B_exp=0.0,C_exp=0.0,deut_flag=0):
 		out.write('\r\n')
 	out.close()
 
-
 # ==============	END ISO_SCALE BLOCK   =================== #
+
+
+
+# ==============	BEGIN ARB_PUlSE BLOCK   =================== #
+
+# ========================== ARB_PULSE ======================== \
+# This routine will generate a chirped pulse for usage on an    |
+# arbitrary waveform generator. This was coded primarily for    |
+# use on Tektronix AWGs, such as the 7000 series. Functionality |
+# on other AWGs is not guaranteed.                              |
+# ------------------------------------------------------------- \
+#                          USAGE:                               |
+# arb_pulse(dict Opt, dict Time, int frames, str out_name)      |
+# Input: Opt and Time are dictionaries with the following       |
+# format:                                                       |
+# Opt = {'Chirp_Start': float start, 'Chirp_Stop': float end,   |
+# 'Chirp_Duration': float duration, 'Sample_Rate': float rate}  |
+#                                                               |
+# Mark = {'DELAY': float delay, CH1_ON: ': float ch1_on,        |
+# 'CH1_OFF': float ch1_off, 'CH2_ON': float ch2_on,             |
+# 'CH2_OFF': float ch2_off, 'BUFFER': float buff}               |
+#                                                               |
+# frames: integer specifying how many chirp frames shall be     |
+# made in output pulse                                          |
+#                                                               |
+# out_name: output file name of choice. Defaults to None.       |
+# If none, then arb_pulse merely returns an array with the      |
+# pulse. If out_name is a string, then it will save a file      |
+# and not return the array.                                     |
+#                                                               |
+# More information on the variables contained in these dicts    |
+# can be found in the code below contained in commented lines.  |
+# --------------------------------------------------------------\
+
+def _pulse(t, start, stop, duration):
+	return math.sin((2*math.pi*(start*10e5)*t)+(2*math.pi*((stop - start)*10e5)*((t**2)/(2*duration*10e-7))))
+
+def _marker(c_on,c_off,s_rate,total_points):
+	n_on = int(math.floor(c_on*10e-7*s_rate*10e8))
+	n_off = int(math.floor(c_off*10e-7*s_rate*10e-8))
+
+	marker = []
+	for n in range(0, n_on-1):
+		marker.append(0)
+	for n in range(n_on-1,n_off-1):
+		marker.append(1)
+	for n in range(n_off-1,total_points):
+		marker.append(0)
+	return marker
+
+def _waveform(start,stop,delay,s_rate,duration,total_points):
+	N_on = int(math.floor(delay*10e-7*s_rate*10e8)) 
+	chirp = []
+	for n in range(0, N_on):
+		chirp.append(0)
+	N_chirp = int(math.ceil(duration*10e-7*s_rate*10e8))
+	for n in range(0, N_chirp):
+		t = n*(s_rate*10e8)**(-1)
+		chirp.append(_pulse(t,start,stop,duration))
+	for n in range((N_chirp+N_on),total_points):
+		chirp.append(0)
+	return chirp
+
+
+def arb_pulse(Opt, Mark, frames, out_name=None):
+
+	# Initialize options and marker channels
+
+	# These mark the starting and ending frequencies of the chirp, in MHz
+	Chirp_Start = float(Opt['Chirp_Start'])
+	Chirp_Stop  = float(Opt['Chirp_Stop'])
+
+	# Length of chirp, in microseconds
+	Chirp_Duration = float(Opt['Chirp_Duration'])
+
+	# Sampling rate, in GS/s
+	Sample_Rate = float(Opt['Sample_Rate'])
+
+	# Chirp delay -- zero padding at beginning of chirp, in microseconds
+	Chirp_Delay = float(Mark['DELAY'])
+
+	# Initialize markers channel timings, in microseconds
+	CH1_ON = float(Mark['CH1_ON'])
+	CH1_OFF = float(Mark['CH1_OFF'])
+	CH2_ON = float(Mark['CH2_ON'])
+	CH2_OFF = float(Mark['CH2_OFF'])
+
+	# Buffer time -- extra time zero padding at end of chirp, in microseconds
+	BUFFER = float(Mark['BUFFER'])
+
+	# Initialize number of points in a single pulse based on the timings initialized previously
+	def waveform_time():
+		t = Chirp_Delay + Chirp_Duration
+		if CH1_OFF > t:
+			t = CH1_OFF
+		if CH2_OFF > t:
+			t = CH2_OFF
+		t = t + BUFFER
+		return t
+
+	time = waveform_time()
+	total_points = int(math.ceil(time*(10**(-6))*Sample_Rate*(10**9)))
+
+	a = _waveform(Chirp_Start,Chirp_Stop,Chirp_Delay,Sample_Rate,Chirp_Duration,total_points)
+	b = _marker(CH1_ON,CH1_OFF,Sample_Rate,total_points)
+	c = _marker(CH2_ON,CH2_OFF,Sample_Rate,total_points)
+	print len(a)
+
+	if out_name == None:
+		AWG_data = zeros((frames*len(a),3))
+		for n in range(frames):
+			for i in range(len(a)):
+				AWG_data[n*len(a)+i,0] = a[i]
+				AWG_data[n*len(a)+i,1] = b[i]
+				AWG_data[n*len(a)+i,2] = c[i]
+
+		return AWG_data
+
+	if isinstance(out_name,str):
+		output_filename = str(out_name)
+		AWG_data = open(output_filename,'w')
+		for n in range(frames):
+			for i in range(len(a)):
+				AWG_data.write(str(a[i])+'\t'+str(b[i])+'\t'+str(c[i])+'\n')
+		AWG_data.close()
+
+
+
+
+
+
