@@ -131,7 +131,10 @@ def _masses(symbol):
 				return 18.99840322
 			if symbol == 'Si':
 				return 27.9769265325
+			if symbol == 'S':
+				return 31.97207100
 			else:
+				print str(symbol)
 				raise ValueError('BLANK_UNKNOWN_SYMBOL')
 
 		elif re.match("[0-9]", symbol): # regex for atomic numbers
@@ -149,7 +152,10 @@ def _masses(symbol):
 				return 18.99840322
 			if symbol == '14':
 				return 27.9769265325
+			if symbol == '16':
+				return 31.97207100
 			else:
+				print str(symbol)
 				raise ValueError('BLANK_UNKNOWN_SYMBOL')
 	except ValueError:
 		print 'ERROR! An atomic symbol is blank or not recognized.'
@@ -530,4 +536,93 @@ def cut(spectrum_file,linelist_file,width):
 #plt.plot(cutspec[:,0],cutspec[:,1])
 #plt.show()
 
-# =================		END CUT BLOCK    ==================== #
+# =================		END CUT BLOCK    ====================== #
+
+
+# ========================== ISO_SCALE ======================== \
+# This routine will take in a set of experimental rotational    |
+# constants and an experimental geometry of the same form as    |
+# rot_coords (line 91), and will output scaled rotational       |
+# constants for each of the isotopologues.                      |
+# --------------------------------------------------------------\
+
+# ==============	BEGIN ISO_SCALE BLOCK   =================== #
+
+
+# Returns a list of labels and isotopologue masses for an input mass
+def _isomass(mass):
+	try:
+		if mass == 1.007825037:
+			return ['2D',2.0141017778]
+		if mass == 12.00000000:
+			return ['13C',13.0033548378]	
+		if mass == 15.9949164:
+			return ['18O',17.9991610]
+		if mass == 14.003074008:
+			return ['15N',15.0001088982]
+		if mass == 34.96885268:
+			return ['37Cl',36.96590259]
+		if mass == 27.9769265325:
+			return ['29Si',28.976494700,'30Si',29.97377017]	
+		if mass == 31.97207100:
+			return ['34S',33.96786690]
+		else:
+			raise ValueError('BLANK_UNKNOWN_SYMBOL')
+	except ValueError:
+		print 'ERROR! An atomic symbol is blank or not recognized.'
+		raise
+
+def scale(geomfile,A_exp=0.0,B_exp=0.0,C_exp=0.0,deut_flag=0):
+
+	symbols = genfromtxt(str(geomfile),dtype=str,usecols=(0))
+	coords = genfromtxt(str(geomfile),dtype=float,usecols=(1,2,3))
+
+	# Create merged matrix for the rest of the routine
+	coordmat = zeros((size(symbols),4))
+
+	for i in range(size(symbols)):
+		coordmat[i,0] = _masses(symbols[i])
+		coordmat[i,1] = coords[i,0]
+		coordmat[i,2] = coords[i,1]
+		coordmat[i,3] = coords[i,2]
+
+	# Initialize output file
+	ns_constants,rotmatr = _calcabc(_comshift(coordmat))
+	out = open(str(geomfile)+'_scaled_isotopologues.txt','wb')
+	out.write('Scaled isotopologues for geometry file: ' + geomfile + '\r\n')
+	out.write('-----------------------------------------------\r\n')
+	out.write('Theoretical constants for normal species: '+ str(round(ns_constants[0],3))+' '+str(round(ns_constants[1],3))+' '+str(round(ns_constants[2],3))+"\r\n")
+	out.write('Experimental constants for normal species: ' + str(A_exp)+' '+str(B_exp)+' '+str(C_exp)+'\r\n')
+	out.write('-----------------------------------------------\r\n')
+	
+	
+
+	# Main scaling routine
+	for i in range(shape(coordmat)[0]):
+		if coordmat[i,0] == 1.007825037 and deut_flag==0:
+			continue
+		iso_temp = _isomass(coordmat[i,0])
+		out.write('\r\n-------------------------------------\r\n')
+		out.write('Input atom '+str(i+1)+': '+ symbols[i] + '	'+str(round(coordmat[i,1],3))+' '+str(round(coordmat[i,2],3))+' '+str(round(coordmat[i,3],3))+'\r\n')
+		out.write('-------------------------------------\r\n')
+		for j in range(len(iso_temp)):
+			if j % 2 == 0:
+				# Check to see if isotope is deuterium and if we want deuterium
+				if iso_temp[j] == '2D' and deut_flag == 0:
+					continue
+				else:
+					label = iso_temp[j]
+					temp_mat = coordmat
+					temp_mat[i,0] = iso_temp[j+1]
+					constants,rotmatr = _calcabc(_comshift(temp_mat))
+
+					newA = constants[0]*(float(A_exp)/ns_constants[0])
+					newB = constants[1]*(float(B_exp)/ns_constants[1])
+					newC = constants[2]*(float(C_exp)/ns_constants[2])
+					out.write(label+'	'+str(round(newA,3))+' '+str(round(newB,3))+' '+str(round(newC,3))+'\r\n')
+
+		out.write('\r\n')
+	out.close()
+
+
+# ==============	END ISO_SCALE BLOCK   =================== #
