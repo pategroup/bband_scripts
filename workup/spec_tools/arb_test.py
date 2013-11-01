@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 #markers = {'DELAY': 1.5, 'CH1_ON': 0.1, 'CH1_OFF': 1.1, 'CH2_ON': 2.8, 'CH2_OFF': 3.8, 'BUFFER': 52.0-3.8}
 
 options= {'Chirp_Start': 2000.0, 'Chirp_Stop': 2100.0, 'Chirp_Duration': 0.25, 'Sample_Rate': 24}
-timings = {'DELAY': 1.5, 'M1_WIDTH': 1.0, 'M2_WIDTH':  1.0, 'M_PULSE_BUFFER': 0.5,'BUFFER': 52.0}
+
+timings = {'DELAY': 1.5, 'M1_WIDTH': 1.0, 'M2_WIDTH':  1.0, 'M_PULSE_BUFFER': 0.5,'BUFFER': 52.0, 'PREBUFFER': 0.1}
 
 frames = 8
 
