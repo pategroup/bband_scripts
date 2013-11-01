@@ -544,7 +544,18 @@ def cut(spectrum_file,linelist_file,width):
 # constants and an experimental geometry of the same form as    |
 # rot_coords (line 91), and will output scaled rotational       |
 # constants for each of the isotopologues.                      |
-# --------------------------------------------------------------\
+# -------------------------------------------\\\----------------\
+#                             USAGE:                            |
+# scale(geomfile,A_exp,B_exp,C_exp,deut_flag)                   |
+# where:                                                        |
+# - geomfile is a filename corresponding to the geometry used   |
+# for scaling                                                   |
+# - A/B/C_exp are the experimental rotational constants for     |
+# the parent isotopic species (corresp. to geomfile)            |
+# - deut_flag takes 0 or 1. If 1, scale() will output all       |
+# scaled deuterium isotopologic constants                       |
+# ------------------------------------------------------------- \
+
 
 # ==============	BEGIN ISO_SCALE BLOCK   =================== #
 
@@ -643,9 +654,9 @@ def scale(geomfile,A_exp=0.0,B_exp=0.0,C_exp=0.0,deut_flag=0):
 # Opt = {'Chirp_Start': float start, 'Chirp_Stop': float end,   |
 # 'Chirp_Duration': float duration, 'Sample_Rate': float rate}  |
 #                                                               |
-# Mark = {'DELAY': float delay, CH1_ON: ': float ch1_on,        |
-# 'CH1_OFF': float ch1_off, 'CH2_ON': float ch2_on,             |
-# 'CH2_OFF': float ch2_off, 'BUFFER': float buff}               |
+# Mark = {'DELAY': float delay, 'M1_WIDTH': float width1,       |
+# 'M2_WIDTH': 1.0, 'M_PULSE_BUFFER': float pbuff, 'BUFFER':     |
+# float buffer, 'PREBUFFER': float prebuff}                     |
 #                                                               |
 # frames: integer specifying how many chirp frames shall be     |
 # made in output pulse                                          |
@@ -659,12 +670,22 @@ def scale(geomfile,A_exp=0.0,B_exp=0.0,C_exp=0.0,deut_flag=0):
 # can be found in the code below contained in commented lines.  |
 # --------------------------------------------------------------\
 
+
+# The following diagram shows the layout of the timing variables:
+# ==================================================== t increasing --> =================================================================
+#
+#
+# ------------------|                  |---------------|\/\/\/\/\/\/\/\/\/\|---------------|                     |-----------------|
+# ------------------|                  |---------------|/\/\/\/\/\/\/\/\/\/|---------------|                     |-----------------|
+# <--PREBUFFER---->    <---M1_WID-->     <-M_P_BUF-->   <---CHIRP_DUR-----> <--M_P_BUFF---> <------M2_WIDTH----->                  ^ BUFFER
+#  
+
 def _pulse(t, start, stop, duration):
 	return math.sin((2*math.pi*(start*10e5)*t)+(2*math.pi*((stop - start)*10e5)*((t**2)/(2*duration*10e-7))))
 
 def _marker(c_on,c_off,s_rate,total_points):
 	n_on = int(math.floor(c_on*10e-7*s_rate*10e8))
-	n_off = int(math.floor(c_off*10e-7*s_rate*10e-8))
+	n_off = int(math.floor(c_off*10e-7*s_rate*10e8))
 
 	marker = []
 	for n in range(0, n_on-1):
@@ -706,14 +727,14 @@ def arb_pulse(Opt, Mark, frames, out_name=None):
 	# Chirp delay -- zero padding at beginning of chirp, in microseconds
 	Chirp_Delay = float(Mark['DELAY'])
 
+	CH1_ON = Chirp_Delay-float(Mark['M1_WIDTH'])-float(Mark['M_PULSE_BUFFER'])+float(Mark['PREBUFFER'])
+	CH1_OFF = Chirp_Delay-float(Mark['M_PULSE_BUFFER'])
+	CH2_ON = Chirp_Delay+Chirp_Duration+float(Mark['M_PULSE_BUFFER'])
+	CH2_OFF = CH2_ON+float(Mark['M2_WIDTH'])
 	# Initialize markers channel timings, in microseconds
-	CH1_ON = float(Mark['CH1_ON'])
-	CH1_OFF = float(Mark['CH1_OFF'])
-	CH2_ON = float(Mark['CH2_ON'])
-	CH2_OFF = float(Mark['CH2_OFF'])
 
 	# Buffer time -- extra time zero padding at end of chirp, in microseconds
-	BUFFER = float(Mark['BUFFER'])
+	BUFFER = float(Mark['BUFFER'])-CH2_OFF
 
 	# Initialize number of points in a single pulse based on the timings initialized previously
 	def waveform_time():
