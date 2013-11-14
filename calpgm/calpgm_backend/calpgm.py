@@ -113,13 +113,13 @@ class calpgm(object):
 		return output
 
 
-	def add_params(self,new_dict):
+	def add_spcat_params(self,new_dict):
 		self.ALL_PARAMS = dict(ALL_PARAMS.items()+new_dict.items())
 
-	def get_params(self):
+	def get_vals(self):
 		return self.current_vals
 
-	def get_init_params(self):
+	def get_init_vals(self):
 		return self.initial_vals
 
 	def error_message(self,errortype, message, severity=0):
@@ -315,6 +315,8 @@ class spcat(calpgm):
 	# v = 'init' / 'initial' / 'i' <--- runs SPCAT on the initial var/int put into the spcat() object (self.init_int/self.init_var). Good if you want to compare vs new var/int iteration
 	# or....
 	# v = 'cur' / 'current' / 'c' <--- DEFAULT. runs SPCAT on current var/int in spcat() object, self.cur_var and self.cur_int
+	# update = 1 / 0 (default = 0). If set to 1, execute will rerun to_var() and to_int(). This is essential if you update a variable in the class object, such as dipoles or the temperature,
+	# and want to get a new prediction. 
 
 		try:
 			if 'filename' in kwargs:
@@ -325,6 +327,13 @@ class spcat(calpgm):
 			if 'v' in kwargs:
 				if kwargs['v'] == 'init' or kwargs['v'] == 'initial' or kwargs['v'] == 'i':
 					if self.init_int != "" and self.init_var != "":
+
+						if 'update' in kwargs:
+							if kwargs['update'] == 1:
+								self.to_var()
+								self.to_int()
+							if kwargs['update'] == 0:
+								pass
 
 						self.to_file(type='var',filename=output_name,v='i')
 						self.to_file(type='int',filename=output_name,v='i')
@@ -337,6 +346,13 @@ class spcat(calpgm):
 
 				elif kwargs['v'] == 'cur' or kwargs['v'] == 'current' or kwargs['v'] == 'c':
 					if self.cur_var != "" and self.cur_int != "":
+
+						if 'update' in kwargs:
+							if kwargs['update'] == 1:
+								self.to_var()
+								self.to_int()
+							if kwargs['update'] == 0:
+								pass
 
 						self.to_file(type='var',filename=output_name,v='c')
 						self.to_file(type='int',filename=output_name,v='c')
@@ -497,27 +513,54 @@ class spcat(calpgm):
 		pass
 
 
-butt = spcat(data='data')
-#print butt.get_var() + "\n\n"
-#print butt.get_int()
 
-butt.execute(v='c')
-
-outputcat = butt.read_cat(pretty=0)
+# EXAMPLE BLOCK
 
 
-filtered = butt.cat_filter(outputcat, freq_up=10000,freq_min=2000,Ka_up_max=0)
+example = spcat(data='data') # Creates instance of SPCAT object. Everything in this API will be controlled through the SPCAT object
+							 # spcat.__init__ creates a new var and int object based on the input parameters; in this case 
+							 # everything is default (defaults set in calpgm() class), and it points to the file 'data' to get rotational constants
+
+example.execute(v='c') # Runs SPCAT on current data & parameters, as above call sets
+
+outputcat = example.read_cat(pretty=0) # Reads and returns cat file as a list of lists
 
 
-# total_time = 0
-# for i in range(0,100):
-# 	t1 = time.time()
-# 	butt.read_cat()
-# 	t2=time.time()
-# 	total_time += t2-t1
+filtered = example.cat_filter(outputcat, freq_up=10000,freq_min=2000,Ka_up_max=0) # Filters cat file with frequency range 2-10 GHz, and Ka can only be 0
+for i in filtered:
+	print i
+print "--------"
 
-# h = butt.read_cat()
+filtered = example.cat_filter(outputcat,freq_up=10000,freq_min=2000,Ka_up_max=0,J_max=3) # Does the above, but with J no greater than 3.
+for i in filtered:
+	print i
 
-# t2=time.time()
-# print 'the average time read_cat took was: ' + str(total_time/100)
+example.dipoles = [1.0,0,0] # Update the dipole moments to be just a-type
+
+example.execute(v='c',update=1) # Reruns SPCAT with update=1, which uses the above dipole changes in calculating the CAT file
+
+filtered = example.cat_filter(example.read_cat(),freq_up=10000,freq_min=2000,Ka_up_max=0,J_max=3) # Filters the updated CAT file
+print "---------"
+for i in filtered:
+	print i
+
+example.execute(v='i') # Reruns SPCAT with initial parameters (all dipoles default). Each spcat object will always store the initial var/int file. They can
+					   # be changed, of course, by pointing to example.init_var and example.init_int to a new var/int string (such as that from example.get_var())
+filtered = example.cat_filter(example.read_cat(),freq_up=10000,freq_min=2000,Ka_up_max=0,J_max=3)  # Filters the "initial" CAT file
+print "---------"
+for i in filtered:
+	print i
+
+# For instance:
+example.init_var = example.get_var()
+example.init_int = example.get_int()
+# Replaces initial var and int in example object with the updated dipoles
+
+example.execute(v='c')
+filtered = example.cat_filter(example.read_cat(),freq_up=10000,freq_min=2000,Ka_up_max=0,J_max=3) # Results in the same as the third cat_filter call in this example block
+print "---------"
+for i in filtered:
+	print i
+
+# Easy!
 
