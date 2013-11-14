@@ -115,51 +115,14 @@ __license__ = "GPLv2"
 
 # _masses takes an input string and matches it with an atomic weight
 def _masses(symbol):
-	try:
-		if re.match("[A-Za-z]", symbol): # regex for atomic symbols
-			if symbol == 'H':
-				return 1.007825037
-			if symbol == 'C':
-				return 12.00000000
-			if symbol == 'O':
-				return 15.99491464
-			if symbol == 'N':
-				return 14.003074008
-			if symbol == 'Cl':
-				return 34.96885268
-			if symbol == 'F':
-				return 18.99840322
-			if symbol == 'Si':
-				return 27.9769265325
-			if symbol == 'S':
-				return 31.97207100
-			else:
-				print str(symbol)
-				raise ValueError('BLANK_UNKNOWN_SYMBOL')
 
-		elif re.match("[0-9]", symbol): # regex for atomic numbers
-			if symbol == '1':
-				return 1.007825037
-			if symbol == '6':
-				return 12.00000000
-			if symbol == '8':
-				return 15.99491464
-			if symbol == '7':
-				return 14.003074008
-			if symbol == '17':
-				return 34.96885268
-			if symbol == '9':
-				return 18.99840322
-			if symbol == '14':
-				return 27.9769265325
-			if symbol == '16':
-				return 31.97207100
-			else:
-				print str(symbol)
-				raise ValueError('BLANK_UNKNOWN_SYMBOL')
-	except ValueError:
-		print 'ERROR! An atomic symbol is blank or not recognized.'
-		raise
+	masses_lett = {'H':1.007825037, 'C':12.0, 'O':15.99491464, 'N': 14.003074008, 'Cl': 34.96885268, 'F': 18.99840322, 'Si':27.9769265325, 'S': 31.97207100}
+	masses_num = {'1':1.007825037, '6':12.0, '8':15.99491464, '7': 14.003074008, '17': 34.96885268, '9': 18.99840322, '14':27.9769265325, '16': 31.97207100}
+	
+	if symbol in masses_lett:	
+		return masses_lett[symbol]
+	if symbol in masses_num:
+		return masses_num[symbol]
 
 # comshift(Array matr) shifts coordinates from an input coordinate matrix 
 # into a center of mass frame
@@ -562,26 +525,39 @@ def cut(spectrum_file,linelist_file,width):
 
 # Returns a list of labels and isotopologue masses for an input mass
 def _isomass(mass):
-	try:
-		if mass == 1.007825037:
-			return ['2D',2.0141017778]
-		if mass == 12.00000000:
-			return ['13C',13.0033548378]	
-		if mass == 15.9949164:
-			return ['18O',17.9991610]
-		if mass == 14.003074008:
-			return ['15N',15.0001088982]
-		if mass == 34.96885268:
-			return ['37Cl',36.96590259]
-		if mass == 27.9769265325:
-			return ['29Si',28.976494700,'30Si',29.97377017]	
-		if mass == 31.97207100:
-			return ['34S',33.96786690]
-		else:
-			raise ValueError('BLANK_UNKNOWN_SYMBOL')
-	except ValueError:
-		print 'ERROR! An atomic symbol is blank or not recognized.'
-		raise
+
+	masses = {1.007825037:['2D',2.0141017778],12.0:['13C',13.0033548378], 14.003074008:['15N',15.0001088982],15.99491464:['18O',17.9991610],34.96885268:['37Cl',36.96590259],27.9769265325:['29Si',28.976494700,'30Si',29.97377017],31.97207100:['34S',33.96786690]}
+	
+	if mass in masses:
+		return masses[mass]
+	else:
+		return mass
+
+#def _isomass(mass):
+#	try:
+#		if mass == 1.007825037:
+#			return ['2D',2.0141017778]
+#		if mass == 12.00000000:
+#			return ['13C',13.0033548378]	
+#		if mass - 15.9949164 < 0.01:
+#			return ['18O',17.9991610]
+#		if mass == 14.003074008:
+#			return ['15N',15.0001088982]
+#		if mass == 34.96885268:
+#			return ['37Cl',36.96590259]
+#		if mass == 27.9769265325:
+#			return ['29Si',28.976494700,'30Si',29.97377017]	
+#		if mass == 31.97207100:
+#			return ['34S',33.96786690]
+#			
+#		if isinstance(mass,float):
+#			return mass
+#		else:
+#			print "Messed up mass: " + str(mass)
+#			raise ValueError('BLANK_UNKNOWN_SYMBOL')
+#	except ValueError:
+#		print 'ERROR! An atomic symbol is blank or not recognized.'
+#		raise
 
 def scale(geomfile,A_exp=0.0,B_exp=0.0,C_exp=0.0,deut_flag=0):
 
@@ -593,6 +569,7 @@ def scale(geomfile,A_exp=0.0,B_exp=0.0,C_exp=0.0,deut_flag=0):
 
 	for i in range(size(symbols)):
 		coordmat[i,0] = _masses(symbols[i])
+		#print coordmat[i,0]
 		coordmat[i,1] = coords[i,0]
 		coordmat[i,2] = coords[i,1]
 		coordmat[i,3] = coords[i,2]
@@ -609,28 +586,33 @@ def scale(geomfile,A_exp=0.0,B_exp=0.0,C_exp=0.0,deut_flag=0):
 	
 
 	# Main scaling routine
-	for i in range(shape(coordmat)[0]):
+	for i in range(0,shape(coordmat)[0]):
 		if coordmat[i,0] == 1.007825037 and deut_flag==0:
+			print 'Am I here?'
 			continue
 		iso_temp = _isomass(coordmat[i,0])
+		print iso_temp
+		if isinstance(iso_temp,float):
+			print 'Am i here?'
+			continue
 		out.write('\r\n-------------------------------------\r\n')
 		out.write('Input atom '+str(i+1)+': '+ symbols[i] + '	'+str(round(coordmat[i,1],3))+' '+str(round(coordmat[i,2],3))+' '+str(round(coordmat[i,3],3))+'\r\n')
 		out.write('-------------------------------------\r\n')
-		for j in range(len(iso_temp)):
+		for j in range(0,len(iso_temp)):
 			if j % 2 == 0:
 				# Check to see if isotope is deuterium and if we want deuterium
 				if iso_temp[j] == '2D' and deut_flag == 0:
-					continue
-				else:
-					label = iso_temp[j]
-					temp_mat = coordmat
-					temp_mat[i,0] = iso_temp[j+1]
-					constants,rotmatr = _calcabc(_comshift(temp_mat))
-
-					newA = constants[0]*(float(A_exp)/ns_constants[0])
-					newB = constants[1]*(float(B_exp)/ns_constants[1])
-					newC = constants[2]*(float(C_exp)/ns_constants[2])
-					out.write(label+'	'+str(round(newA,3))+' '+str(round(newB,3))+' '+str(round(newC,3))+'\r\n')
+					continue	
+				temp_mat = copy(coordmat)
+				label = iso_temp[j]
+				temp_mat[i,0] = iso_temp[j+1]
+				constants,rotmatr = _calcabc(_comshift(temp_mat))
+				print coordmat
+				#print constants
+				newA = constants[0]*(float(A_exp)/ns_constants[0])
+				newB = constants[1]*(float(B_exp)/ns_constants[1])
+				newC = constants[2]*(float(C_exp)/ns_constants[2])
+				out.write(label+'	'+str(round(newA,3))+' '+str(round(newB,3))+' '+str(round(newC,3))+'\r\n')
 
 		out.write('\r\n')
 	out.close()
