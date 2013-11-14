@@ -28,6 +28,11 @@ class IdiotCheck(Exception):
 	def __str__(self):
 		return rept(self.value)
 
+class NotSupportedException(Exception):
+	def __init__(self,value):
+		self.value = value
+	def __str__(self):
+		return rept(self.value)
 
 
 class calpgm(object):
@@ -117,7 +122,7 @@ class calpgm(object):
 	def get_init_params(self):
 		return self.initial_vals
 
-	def error_message(errortype, message,severity=0):
+	def error_message(self,errortype, message, severity=0):
 		print '\n\n=========== '+ str(errortype)+ 'ERROR AT: '+datetime.datetime.now().strftime("%a %b %d %I:%M:%S %Y")+'==========='
 		print ""
 		print 'You screwed up! This is why:'
@@ -211,9 +216,11 @@ class spcat(calpgm):
 	cur_var = ""
 	cur_int = ""
 
+
 	pfunc = 1.0 # Partition function for the object stored as a float
 
 	def qrotcalc(self):
+	# Calculates pure, low-temp-approx rotational partition function
 		A = self.current_vals_rigid[0]
 		B = self.current_vals_rigid[1]
 		C = self.current_vals_rigid[2]
@@ -221,7 +228,7 @@ class spcat(calpgm):
 		return round((5.3311*10**6)*self.temp**(1.5)*(A*B*C)**(-0.5),3)
 
 	def to_var(self):
-
+	# Writes var file
 		num_params = len(self.current_vals)
 
 		timestamp = datetime.datetime.now().strftime("%a %b %d %I:%M:%S %Y")
@@ -240,6 +247,7 @@ class spcat(calpgm):
 
 
 	def to_int(self):
+	# Writes int file
 		 self.pfunc = self.qrotcalc()
 
 		 output  = "%s \n"%(self.name)
@@ -252,19 +260,19 @@ class spcat(calpgm):
 		 	self.init_int = output
 		 self.cur_int = output
 
-	def get_var(self):
+	def get_var(self): # Returns current var file string
 		return self.cur_var
 
-	def get_var_init(self):
+	def get_var_init(self): # Returns initial var file string 
 		return self.init_var
 
-	def get_int(self):
+	def get_int(self): # Returns current int file string
 		return self.cur_int
 
-	def get_int_init(self):
+	def get_int_init(self): # Returns initial int file string
 		return self.init_int
 
-	def to_file(self,**kwargs):
+	def to_file(self,**kwargs): # Writes var and int files to a file, filename specified by self.filename or can be overwritten using filename="new_filename" as an argument.
 		if 'filename' in kwargs:
 			out_name = kwargs['filename']
 		else: 
@@ -302,6 +310,12 @@ class spcat(calpgm):
 							output.close()
 
 	def execute(self, **kwargs):
+	# Executes SPCAT. Takes in two different optional arguments:
+	# filename=" " <--- overrides class filename in case you want to run SPCAT on another file
+	# v = 'init' / 'initial' / 'i' <--- runs SPCAT on the initial var/int put into the spcat() object (self.init_int/self.init_var). Good if you want to compare vs new var/int iteration
+	# or....
+	# v = 'cur' / 'current' / 'c' <--- DEFAULT. runs SPCAT on current var/int in spcat() object, self.cur_var and self.cur_int
+
 		try:
 			if 'filename' in kwargs:
 				output_name = kwargs['filename']
@@ -341,12 +355,21 @@ class spcat(calpgm):
 
 
 	def read_cat(self, **kwargs):
-	# Returns a pandas data frame with the following columns:
-	# - freq  <--- frequency of transition in MHz
-	# - inten <--- -log(10) of intensity
-	# - J_up / Ka_up / Kc_up <--- QNs of upper state
-	# - J_down / Ka_down / Kc_down <--- QNs of lower state
-	# - uncert <--- line uncertainties (0 unless you set uncertainties in constants in var file)
+	# Returns a list of lists (cat[i][j]) with the following info extracted from cat file
+	# - cat[i][0] : freq  <--- frequency of transition in MHz
+	# - cat[i][2] : inten <--- -log(10) of intensity
+	# - cat[i][3:5] : J_up / Ka_up / Kc_up <--- QNs of upper state
+	# - cat[i][6:8] : J_down / Ka_down / Kc_down <--- QNs of lower state
+	# - cat[i][1] : uncert <--- line uncertainties (0 unless you set uncertainties in constants in var file)
+
+	# Possible input arguments:
+	# min_freq = float /GHz <--- default 0.0, sets minimium frequency for appending from cat file to output
+	# max_freq = float /GHz <--- default 20.0, sets maximum frequency (overrides self.max_freq)
+	# min_inten = float <--- default -10.0, overrides self.inten
+	# max_inten = float <--- default 0, can't be any larger than this. Probably no reason to change it.
+
+	# pretty = 0/1 <--- default 0. If 1, read_cat() returns a Pandas DataFrame instead with the following columns:
+	# 'freq' / 'uncert' / 'inten' / 'J_up' / 'Ka_up' / 'Kc_up' / 'J_down' / 'Ka_down' / 'Kc_down'
 
 		# Checks to see if user wants to filter cat by frequency
 		if "min_freq" in kwargs:
@@ -398,11 +421,12 @@ class spcat(calpgm):
 		cat_file = []
 		f = open(self.filename+".cat")
 		for line in f:
-			print line
-			if float(line[3:13]) > min_freq and float(line[3:13]) < max_freq:
-				if float(line[13:21]) < max_inten and float(line[13:21]) > min_inten:
+			#print line
+			if float(line[3:13]) > min_freq*1000 and float(line[3:13]) < max_freq*1000:
+				#print line[13:21]
+				if float(line[22:29]) < max_inten and float(line[22:29]) > min_inten:
+					#print 'Got here too!'
 					cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[67:69]),int(line[69:71]),int(line[71:73])])
-		print cat_file
 
 		if "pretty" in kwargs:
 			if kwargs['pretty'] == 1:
@@ -413,7 +437,54 @@ class spcat(calpgm):
 		return cat_file
 
 
-		
+
+
+	def cat_filter(self,catfile, **kwargs): 
+	# Filters cat file, generally returned by read_cat(), based on user-supplied specifications. 
+	# These specifications include J ranges, Ka ranges, frequency, intensity, and uncert.
+	# Since a "cat file" is not a variable of the spcat() object, you will need to supply it a cat_file object, e.g. from read_cat(). It will
+	# accept the list of lists format (pretty=0, default), but at the moment NOT the Pandas output (the author hasn't quite figured out how to do this yet!!!)
+
+
+	# Flags are stored in the dictionary below, and have a three member list, flag[i,j,k,l]; i = 0/1 (on/off), j = corresponding column in catfile, k = inputted filter value, l = 1/-1 (-1 if lower bound, 1 if upper bound -- for boolean filters)
+		flags = {'freq_up':[0,0,0.0,1],'freq_min':[0,0,0.0,-1], 'J_max':[0,3,0,1],'J_min':[0,3,0,-1],'min_inten':[0,2,0.0,-1],'max_inten':[0,2,0.0,1],'uncert':[0,1,0.0,1],'Ka_up_max':[0,4,0,1],'Ka_up_min':[0,4,0,-1],'Ka_down_max':[0,7,0,1],'Ka_down_min':[0,7,0,-1],'Kc_up_max':[0,5,0,1],'Kc_down_max':[0,8,0,1],'Kc_up_min':[0,5,0,-1],'Kc_down_min':[0,8,0,-1]}
+	
+		try:
+			if isinstance(catfile,pn.DataFrame):
+				raise NotSupportedException('Author has been too lazy to implement Pandas support for cat_filter(). Make sure read_cat is not taking in pretty=1 as an argument.')
+
+		except NotSupportedException as e: # Because I haven't figured out how to do filters on DataFrames. Will come soon!!!! 
+			self.error_message("NotSupportedException",e.value,2)
+
+		temp_dict = {}
+		for key in flags: # Sets filter flags based on kwargs input
+			if key in kwargs:
+				flags[key][0] = 1
+				flags[key][2] = kwargs[key]
+			if flags[key][0] == 1:
+				temp_dict[key] = flags[key]
+
+
+		#Filter routine
+		output = []
+		for i in range(0,len(catfile)):
+			filter_val = False
+			for key in temp_dict:
+				if temp_dict[key][3] == 1:
+					index = int(temp_dict[key][1])
+					if float(catfile[i][index]) > temp_dict[key][2]:
+						filter_val = True
+				if temp_dict[key][3] == -1:
+					index = int(temp_dict[key][1])
+					if float(catfile[i][index]) < temp_dict[key][2]:
+						filter_val = True
+			if not filter_val:
+				output.append(catfile[i])
+
+		return output
+
+
+
 	def __init__(self, **kwargs):
 		if 'norun' in kwargs:
 			if kwargs['norun'] == 1:
@@ -425,27 +496,6 @@ class spcat(calpgm):
 				self.to_int()
 		pass
 
-def cat_reader(freq_high,freq_low,flag): #reads output from SPCAT
-
-    if flag == "default":
-        fh = open("default.cat")
-
-    if flag == "refit":
-        fh = open("refit.cat")
-
-    linelist = []
-    for line in fh:
-        if line[8:9]==".": 
-            freq = line[3:13]
-            inten = line[22:29]
-            qnum_up = line[55:61]
-            qnum_low = line[67:73]
-            uncert = line[13:21]
-            if float(freq)> freq_low and float(freq)<freq_high:#<<<<<<<<<<<<<<<<<<<<
-                linelist.append((inten,freq, qnum_up, qnum_low,uncert))
-    linelist.sort()
-    fh.close()
-    return linelist
 
 butt = spcat(data='data')
 #print butt.get_var() + "\n\n"
@@ -453,22 +503,21 @@ butt = spcat(data='data')
 
 butt.execute(v='c')
 
-total_time = 0
-for i in range(0,100):
-	t1 = time.time()
-	butt.read_cat()
-	t2=time.time()
-	total_time += t2-t1
+outputcat = butt.read_cat(pretty=0)
 
-h = butt.read_cat()
 
-#t2=time.time()
-print 'the average time read_cat took was: ' + str(total_time/100)
+filtered = butt.cat_filter(outputcat, freq_up=10000,freq_min=2000,Ka_up_max=0)
 
-total_time = 0
-for i in range(0,100):
-	t1 = time.time()
-	cat_reader(2000000.0,0.0,"default")
-	t2 = time.time()
-	total_time += t2-t1
-print 'the time it took Ians routine was: ' + str(total_time/100)
+
+# total_time = 0
+# for i in range(0,100):
+# 	t1 = time.time()
+# 	butt.read_cat()
+# 	t2=time.time()
+# 	total_time += t2-t1
+
+# h = butt.read_cat()
+
+# t2=time.time()
+# print 'the average time read_cat took was: ' + str(total_time/100)
+
