@@ -3,6 +3,7 @@ import datetime
 import math
 import subprocess
 import os.path
+import os
 
 import numpy as np 
 import pandas as pn
@@ -341,6 +342,8 @@ class spcat(calpgm):
 						# For *nix systems:
 						a = subprocess.Popen("./spcat "+output_name,stdout=subprocess.PIPE,shell=True)
 						a.stdout.read()
+						
+
 					if self.init_int == "" or self.init_var == "":
 						raise ExecuteError('Empty int or var during execute step')
 
@@ -356,10 +359,11 @@ class spcat(calpgm):
 
 						self.to_file(type='var',filename=output_name,v='c')
 						self.to_file(type='int',filename=output_name,v='c')
-
+						
 						# For *nix systems:
 						a = subprocess.Popen("./spcat "+output_name,stdout=subprocess.PIPE,shell=True)
 						a.stdout.read()
+						
 
 					if self.cur_int == "" or self.cur_var == "":
 						raise ExecuteError('Empty int or var during execute step')
@@ -454,7 +458,6 @@ class spcat(calpgm):
 
 
 
-
 	def cat_filter(self,catfile, **kwargs): 
 	# Filters cat file, generally returned by read_cat(), based on user-supplied specifications. 
 	# These specifications include J ranges, Ka ranges, frequency, intensity, and uncert.
@@ -479,6 +482,7 @@ class spcat(calpgm):
 				flags[key][2] = kwargs[key]
 			if flags[key][0] == 1:
 				temp_dict[key] = flags[key]
+
 
 
 		#Filter routine
@@ -521,46 +525,55 @@ example = spcat(data='data') # Creates instance of SPCAT object. Everything in t
 							 # spcat.__init__ creates a new var and int object based on the input parameters; in this case 
 							 # everything is default (defaults set in calpgm() class), and it points to the file 'data' to get rotational constants
 
+time1 = time.time()
 example.execute(v='c') # Runs SPCAT on current data & parameters, as above call sets
+time2 = time.time()
+print "It took: "+ str(round((time2-time1)*1000,3)) + " miliseconds to initialize and run\n"
 
+time1 = time.time()
 outputcat = example.read_cat(pretty=0) # Reads and returns cat file as a list of lists
+time2 = time.time()
+print "It took: "+ str(round((time2-time1)*1000,3)) + " miliseconds to run the reader\n"
 
-
+time1 = time.time()
 filtered = example.cat_filter(outputcat, freq_up=10000,freq_min=2000,Ka_up_max=0) # Filters cat file with frequency range 2-10 GHz, and Ka can only be 0
+time2 = time.time()
+
+print "It took: "+ str(round((time2-time1)*1000,3)) + " miliseconds to run the filter\n"
 for i in filtered:
 	print i
 print "--------"
 
-filtered = example.cat_filter(outputcat,freq_up=10000,freq_min=2000,Ka_up_max=0,J_max=3) # Does the above, but with J no greater than 3.
-for i in filtered:
-	print i
+# filtered = example.cat_filter(outputcat,freq_up=10000,freq_min=2000,Ka_up_max=0,J_max=3) # Does the above, but with J no greater than 3.
+# for i in filtered:
+	# print i
 
-example.dipoles = [1.0,0,0] # Update the dipole moments to be just a-type
+# example.dipoles = [1.0,0,0] # Update the dipole moments to be just a-type
 
-example.execute(v='c',update=1) # Reruns SPCAT with update=1, which uses the above dipole changes in calculating the CAT file
+# example.execute(v='c',update=1) # Reruns SPCAT with update=1, which uses the above dipole changes in calculating the CAT file
 
-filtered = example.cat_filter(example.read_cat(),freq_up=10000,freq_min=2000,Ka_up_max=0,J_max=3) # Filters the updated CAT file
-print "---------"
-for i in filtered:
-	print i
+# filtered = example.cat_filter(example.read_cat(),freq_up=10000,freq_min=2000,Ka_up_max=0,J_max=3) # Filters the updated CAT file
+# print "---------"
+# for i in filtered:
+	# print i
 
-example.execute(v='i') # Reruns SPCAT with initial parameters (all dipoles default). Each spcat object will always store the initial var/int file. They can
-					   # be changed, of course, by pointing to example.init_var and example.init_int to a new var/int string (such as that from example.get_var())
-filtered = example.cat_filter(example.read_cat(),freq_up=10000,freq_min=2000,Ka_up_max=0,J_max=3)  # Filters the "initial" CAT file
-print "---------"
-for i in filtered:
-	print i
+# example.execute(v='i') # Reruns SPCAT with initial parameters (all dipoles default). Each spcat object will always store the initial var/int file. They can
+					     # be changed, of course, by pointing to example.init_var and example.init_int to a new var/int string (such as that from example.get_var())
+# filtered = example.cat_filter(example.read_cat(),freq_up=10000,freq_min=2000,Ka_up_max=0,J_max=3)  # Filters the "initial" CAT file
+# print "---------"
+# for i in filtered:
+	# print i
 
-# For instance:
-example.init_var = example.get_var()
-example.init_int = example.get_int()
-# Replaces initial var and int in example object with the updated dipoles
+#For instance:
+# example.init_var = example.get_var()
+# example.init_int = example.get_int()
+#Replaces initial var and int in example object with the updated dipoles
 
-example.execute(v='c')
-filtered = example.cat_filter(example.read_cat(),freq_up=10000,freq_min=2000,Ka_up_max=0,J_max=3) # Results in the same as the third cat_filter call in this example block
-print "---------"
-for i in filtered:
-	print i
+# example.execute(v='c')
+# filtered = example.cat_filter(example.read_cat(),freq_up=10000,freq_min=2000,Ka_up_max=0,J_max=3) # Results in the same as the third cat_filter call in this example block
+# print "---------"
+# for i in filtered:
+	# print i
 
-# Easy!
+#Easy!
 
