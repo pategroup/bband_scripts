@@ -149,7 +149,7 @@ class calpgm(object):
 	# - inten: intensity cutoff (log strength, default -10.0)
 	def __init__(self,**kwargs):
 		print 'CALPGM constructor initialized\n'
-		self.spin = self.spincalc(self.spin)
+		#self.spin = self.spincalc(self.spin)
 		try:
 			for key, value in kwargs.iteritems():
 
@@ -161,31 +161,31 @@ class calpgm(object):
 
 				elif key == 'filename':
 					if isinstance(value,basestring):
-						filename = value
+						self.filename = value
 
 				elif key == 'max_freq':
-					max_freq = float(value)
+					self.max_freq = float(value)
 
 				elif key == 'dipoles':
-					dipoles = value
+					self.dipoles = value
 
 				elif key == 'temp':
 					temp = value
 
 				elif key == 'spin':
-					spin = self.spincalc(value)	
+					self.spin = self.spincalc(value)	
 
 				elif key == 'reduction':
-					reduction = value
+					self.reduction = value
 
 				elif key == 'J_min' or key == 'j_min':
-					J_min = value
+					self.J_min = value
 
 				elif key == 'J_max' or key == 'j_max':
-					J_max = value
+					self.J_max = value
 
 				elif key == 'inten' or key == 'intensity':
-					inten = value
+					self. inten = value
 
 				elif key == 'new_params':
 					try:
@@ -378,8 +378,14 @@ class spcat(calpgm):
 	# Returns a list of lists (cat[i][j]) with the following info extracted from cat file
 	# - cat[i][0] : freq  <--- frequency of transition in MHz
 	# - cat[i][2] : inten <--- -log(10) of intensity
+	#
+	# - if system does not contain nuclear quad:
 	# - cat[i][3:5] : J_up / Ka_up / Kc_up <--- QNs of upper state
 	# - cat[i][6:8] : J_down / Ka_down / Kc_down <--- QNs of lower state
+
+	# - if system does contain nuclear quad:
+	# - cat[i][3:6] : J_up / Ka_up / Kc_up / F_up
+	# - cat[i][7:10]: J_down / Ka_down / Kc_down / F_down
 	# - cat[i][1] : uncert <--- line uncertainties (0 unless you set uncertainties in constants in var file)
 
 	# Possible input arguments:
@@ -435,8 +441,10 @@ class spcat(calpgm):
 			msg += 'SPCAT has not been executed yet for this object. Please run execute() before you read_cat().'
 			self.error_message("IOError",msg,2)
 
-
-		names = ['freq','uncert','inten','J_up',"Ka_up","Kc_up","J_down","Ka_down","Kc_down"]
+		if self.spin == 1:
+			names = ['freq','uncert','inten','J_up',"Ka_up","Kc_up","J_down","Ka_down","Kc_down"]
+		if self.spin != 1:
+			names = ['freq','uncert','inten','J_up',"Ka_up","Kc_up","F_up","J_down","Ka_down","Kc_down","F_down"]
 
 		cat_file = []
 		f = open(self.filename+".cat")
@@ -446,7 +454,11 @@ class spcat(calpgm):
 				#print line[13:21]
 				if float(line[22:29]) < max_inten and float(line[22:29]) > min_inten:
 					#print 'Got here too!'
-					cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[67:69]),int(line[69:71]),int(line[71:73])])
+					if self.spin == 1:
+						cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[67:69]),int(line[69:71]),int(line[71:73])])
+					if self.spin != 1:
+						cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[61:64]),int(line[67:69]),int(line[69:71]),int(line[71:73]),int(line[73:75])])
+
 
 		if "pretty" in kwargs:
 			if kwargs['pretty'] == 1:
@@ -466,7 +478,7 @@ class spcat(calpgm):
 
 
 	# Flags are stored in the dictionary below, and have a three member list, flag[i,j,k,l]; i = 0/1 (on/off), j = corresponding column in catfile, k = inputted filter value, l = 1/-1 (-1 if lower bound, 1 if upper bound -- for boolean filters)
-		flags = {'freq_up':[0,0,0.0,1],'freq_min':[0,0,0.0,-1], 'J_max':[0,3,0,1],'J_min':[0,3,0,-1],'min_inten':[0,2,0.0,-1],'max_inten':[0,2,0.0,1],'uncert':[0,1,0.0,1],'Ka_up_max':[0,4,0,1],'Ka_up_min':[0,4,0,-1],'Ka_down_max':[0,7,0,1],'Ka_down_min':[0,7,0,-1],'Kc_up_max':[0,5,0,1],'Kc_down_max':[0,8,0,1],'Kc_up_min':[0,5,0,-1],'Kc_down_min':[0,8,0,-1]}
+		flags = {'freq_up':[0,0,0.0,1],'freq_min':[0,0,0.0,-1], 'J_max':[0,3,0,1],'J_min':[0,3,0,-1],'min_inten':[0,2,0.0,-1],'max_inten':[0,2,0.0,1],'uncert':[0,1,0.0,1],'Ka_up_max':[0,4,0,1],'Ka_up_min':[0,4,0,-1],'Ka_down_max':[0,8,0,1],'Ka_down_min':[0,8,0,-1],'Kc_up_max':[0,5,0,1],'Kc_down_max':[0,9,0,1],'Kc_up_min':[0,5,0,-1],'Kc_down_min':[0,9,0,-1]}
 	
 		try:
 			if isinstance(catfile,pn.DataFrame):
@@ -518,31 +530,42 @@ class spcat(calpgm):
 
 
 
+
+
+example = spcat(data='data',spin=1,dipoles=[1.0,0,0])
+
+print example.get_vals()
+example.execute(v='c')
+
+example_cat = example.read_cat()
+for i in range(500,600):
+	print example_cat[i]
+
 # EXAMPLE BLOCK
 
 
-example = spcat(data='data') # Creates instance of SPCAT object. Everything in this API will be controlled through the SPCAT object
-							 # spcat.__init__ creates a new var and int object based on the input parameters; in this case 
-							 # everything is default (defaults set in calpgm() class), and it points to the file 'data' to get rotational constants
+# example = spcat(data='data') # Creates instance of SPCAT object. Everything in this API will be controlled through the SPCAT object
+							   #spcat.__init__ creates a new var and int object based on the input parameters; in this case 
+							   #everything is default (defaults set in calpgm() class), and it points to the file 'data' to get rotational constants
 
-time1 = time.time()
-example.execute(v='c') # Runs SPCAT on current data & parameters, as above call sets
-time2 = time.time()
-print "It took: "+ str(round((time2-time1)*1000,3)) + " miliseconds to initialize and run\n"
+# time1 = time.time()
+# example.execute(v='c') # Runs SPCAT on current data & parameters, as above call sets
+# time2 = time.time()
+# print "It took: "+ str(round((time2-time1)*1000,3)) + " miliseconds to initialize and run\n"
 
-time1 = time.time()
-outputcat = example.read_cat(pretty=0) # Reads and returns cat file as a list of lists
-time2 = time.time()
-print "It took: "+ str(round((time2-time1)*1000,3)) + " miliseconds to run the reader\n"
+# time1 = time.time()
+# outputcat = example.read_cat(pretty=0) # Reads and returns cat file as a list of lists
+# time2 = time.time()
+# print "It took: "+ str(round((time2-time1)*1000,3)) + " miliseconds to run the reader\n"
 
-time1 = time.time()
-filtered = example.cat_filter(outputcat, freq_up=10000,freq_min=2000,Ka_up_max=0) # Filters cat file with frequency range 2-10 GHz, and Ka can only be 0
-time2 = time.time()
+# time1 = time.time()
+# filtered = example.cat_filter(outputcat, freq_up=10000,freq_min=2000,Ka_up_max=0) # Filters cat file with frequency range 2-10 GHz, and Ka can only be 0
+# time2 = time.time()
 
-print "It took: "+ str(round((time2-time1)*1000,3)) + " miliseconds to run the filter\n"
-for i in filtered:
-	print i
-print "--------"
+# print "It took: "+ str(round((time2-time1)*1000,3)) + " miliseconds to run the filter\n"
+# for i in filtered:
+	# print i
+# print "--------"
 
 # filtered = example.cat_filter(outputcat,freq_up=10000,freq_min=2000,Ka_up_max=0,J_max=3) # Does the above, but with J no greater than 3.
 # for i in filtered:
