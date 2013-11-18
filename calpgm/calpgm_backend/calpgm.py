@@ -515,6 +515,39 @@ class spcat(calpgm):
 
 		return output
 
+	# Searches through an input cat file for a given transition
+	# catfile is a list of lists, e.g. an output from cat_filter or read_cat()
+	# transition is a list of quantum numbers for the target transition of the form: [J', Ka', Kc', J'', Ka'', Kc'']
+	# for molecules with a single nuclear quad, transition will be of the form: [J', Ka', Kc', F', J'', Ka'', Kc'', F'']
+	def line_search(self,catfile,transition,**kwargs):
+
+		# Make sure quantum numbers are int
+		for i in range(0,len(transition)):
+			transition[i] = int(transition[i])
+
+		# Filter input cat file to limit search
+		to_search = self.cat_filter(catfile,J_max = transition[0], J_min = transition[0], Ka_up_max = transition[1], Ka_up_min = transition[1])
+		print "Filter results: "
+		for i in range(0, len(to_search)):
+			print to_search[i]
+
+		
+		for i in range(0, len(to_search)):
+
+				j = 0
+				found = True
+				
+				while j < len(transition) and found:
+					if transition[j] != to_search[i][j+3]:
+						found = False
+					j += 1
+
+				if not found:
+					pass
+				if found:
+					return to_search[i]
+
+		#return 0
 
 
 	def __init__(self, **kwargs):
@@ -538,8 +571,9 @@ print example.get_vals()
 example.execute(v='c')
 
 example_cat = example.read_cat()
-for i in range(500,600):
-	print example_cat[i]
+#for i in range(500,600):
+#	print example_cat[i]
+
 
 # EXAMPLE BLOCK
 
@@ -599,4 +633,3 @@ for i in range(500,600):
 	# print i
 
 #Easy!
-
