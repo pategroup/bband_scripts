@@ -382,17 +382,20 @@ class spcat(calpgm):
 	# - if system does not contain nuclear quad:
 	# - cat[i][3:5] : J_up / Ka_up / Kc_up <--- QNs of upper state
 	# - cat[i][6:8] : J_down / Ka_down / Kc_down <--- QNs of lower state
+	# - cat[i][9] : if component=1 (see below), this will either be 'a' or 'b' or 'c'
 
 	# - if system does contain nuclear quad:
 	# - cat[i][3:6] : J_up / Ka_up / Kc_up / F_up
 	# - cat[i][7:10]: J_down / Ka_down / Kc_down / F_down
 	# - cat[i][1] : uncert <--- line uncertainties (0 unless you set uncertainties in constants in var file)
+	# - cat[i][11] : if components=1 (see below), this will either be 'a' or 'b' or 'c'
 
 	# Possible input arguments:
 	# min_freq = float /GHz <--- default 0.0, sets minimium frequency for appending from cat file to output
 	# max_freq = float /GHz <--- default 20.0, sets maximum frequency (overrides self.max_freq)
 	# min_inten = float <--- default -10.0, overrides self.inten
 	# max_inten = float <--- default 0, can't be any larger than this. Probably no reason to change it.
+	# component = 0/1 <--- default 0; if 1, read_cat() will append additional row to output with either 'a', 'b', or 'c', specifying the dipole component associated with this transition
 
 	# pretty = 0/1 <--- default 0. If 1, read_cat() returns a Pandas DataFrame instead with the following columns:
 	# 'freq' / 'uncert' / 'inten' / 'J_up' / 'Ka_up' / 'Kc_up' / 'J_down' / 'Ka_down' / 'Kc_down'
@@ -455,11 +458,33 @@ class spcat(calpgm):
 				if float(line[22:29]) < max_inten and float(line[22:29]) > min_inten:
 					#print 'Got here too!'
 					if self.spin == 1:
-						cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[67:69]),int(line[69:71]),int(line[71:73])])
+						if 'component' in kwargs and kwargs['component'] == 1:
+							if (int(line[57:59])-int(line[69:71])) % 2 == 0 and (int(line[59:61])-int(line[71:73])) % 2 == 1:
+								cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[67:69]),int(line[69:71]),int(line[71:73]),'a'])
+
+							if (int(line[57:59])-int(line[69:71])) % 2 == 1 and (int(line[59:61])-int(line[71:73])) % 2 == 1:
+								cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[67:69]),int(line[69:71]),int(line[71:73]),'b'])
+
+							if (int(line[57:59])-int(line[69:71])) % 2 == 1 and (int(line[59:61])-int(line[71:73])) % 2 == 0:
+								cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[67:69]),int(line[69:71]),int(line[71:73]),'c'])
+
+						else:
+							cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[67:69]),int(line[69:71]),int(line[71:73])])
 					if self.spin != 1:
-						cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[61:64]),int(line[67:69]),int(line[69:71]),int(line[71:73]),int(line[73:75])])
+						# Routine checks to see if a/b/c-type  
+						if 'component' in kwargs and kwargs['component'] == 1:
+							if (int(line[57:59])-int(line[69:71])) % 2 == 0 and (int(line[59:61])-int(line[71:73])) % 2 == 1:
+								cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[61:64]),int(line[67:69]),int(line[69:71]),int(line[71:73]),int(line[73:75]),'a'])
 
+							if (int(line[57:59])-int(line[69:71])) % 2 == 1 and (int(line[59:61])-int(line[71:73])) % 2 == 1:
+								cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[61:64]),int(line[67:69]),int(line[69:71]),int(line[71:73]),int(line[73:75]),'b'])
 
+							if (int(line[57:59])-int(line[69:71])) % 2 == 1 and (int(line[59:61])-int(line[71:73])) % 2 == 0:
+								cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[61:64]),int(line[67:69]),int(line[69:71]),int(line[71:73]),int(line[73:75]),'c'])
+						else:
+							cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[61:64]),int(line[67:69]),int(line[69:71]),int(line[71:73]),int(line[73:75])])
+
+						# Writes 
 		if "pretty" in kwargs:
 			if kwargs['pretty'] == 1:
 				names = ['freq','uncert','inten','J_up',"Ka_up","Kc_up","J_down","Ka_down","Kc_down"]
@@ -478,8 +503,16 @@ class spcat(calpgm):
 
 
 	# Flags are stored in the dictionary below, and have a three member list, flag[i,j,k,l]; i = 0/1 (on/off), j = corresponding column in catfile, k = inputted filter value, l = 1/-1 (-1 if lower bound, 1 if upper bound -- for boolean filters)
-		flags = {'freq_up':[0,0,0.0,1],'freq_min':[0,0,0.0,-1], 'J_max':[0,3,0,1],'J_min':[0,3,0,-1],'min_inten':[0,2,0.0,-1],'max_inten':[0,2,0.0,1],'uncert':[0,1,0.0,1],'Ka_up_max':[0,4,0,1],'Ka_up_min':[0,4,0,-1],'Ka_down_max':[0,8,0,1],'Ka_down_min':[0,8,0,-1],'Kc_up_max':[0,5,0,1],'Kc_down_max':[0,9,0,1],'Kc_up_min':[0,5,0,-1],'Kc_down_min':[0,9,0,-1]}
-	
+		flags = {'freq_up':[0,0,0.0,1],'freq_min':[0,0,0.0,-1], 'J_max':[0,3,0,1],'J_min':[0,3,0,-1],'min_inten':[0,2,0.0,-1],'max_inten':[0,2,0.0,1],'uncert':[0,1,0.0,1],'Ka_up_max':[0,4,0,1],'Ka_up_min':[0,4,0,-1],'Ka_down_max':[0,7,0,1],'Ka_down_min':[0,7,0,-1],'Kc_up_max':[0,5,0,1],'Kc_down_max':[0,8,0,1],'Kc_up_min':[0,5,0,-1],'Kc_down_min':[0,8,0,-1], 'component':[0,9,0,0]}
+		
+		# Shifts Ka/Kc labels due to addition of F quantum numbers
+		if self.spin != 1:
+			flags['Ka_down_max'][1] = 8
+			flags['Ka_down_min'][1] = 8
+			flags['Kc_down_max'][1] = 9
+			flags['Kc_down_min'][1] = 9
+			flags['component'][1] = 11
+
 		try:
 			if isinstance(catfile,pn.DataFrame):
 				raise NotSupportedException('Author has been too lazy to implement Pandas support for cat_filter(). Make sure read_cat is not taking in pretty=1 as an argument.')
@@ -499,6 +532,7 @@ class spcat(calpgm):
 
 		#Filter routine
 		output = []
+
 		for i in range(0,len(catfile)):
 			filter_val = False
 			for key in temp_dict:
@@ -506,10 +540,24 @@ class spcat(calpgm):
 					index = int(temp_dict[key][1])
 					if float(catfile[i][index]) > temp_dict[key][2]:
 						filter_val = True
+
 				if temp_dict[key][3] == -1:
 					index = int(temp_dict[key][1])
 					if float(catfile[i][index]) < temp_dict[key][2]:
 						filter_val = True
+
+				if temp_dict[key][3] == 0: # Filter by dipole type
+					index = int(temp_dict[key][1])
+					# Check to see if dipole filter is string -- e.g. only one dipole component selected
+					if isinstance(temp_dict[key][2],basestring):
+						#print str(catfile[i][index]) + '<--- CATFILE //// DICTIONARY CALL --->' + str(temp_dict[key][2]) + ' INDEX ON CATFILE CALL ---> ' + str(index)
+						if catfile[i][index] != temp_dict[key][2]:
+							filter_val = True
+					else:
+						for i in range(0,len(temp_dict[key][2])):
+							if not catfile[i][index] in temp_dict[key][2]:
+								filter_val = True
+						
 			if not filter_val:
 				output.append(catfile[i])
 
@@ -565,14 +613,20 @@ class spcat(calpgm):
 
 
 
-example = spcat(data='data',spin=1,dipoles=[1.0,0,0])
+example = spcat(data='data',spin=1,dipoles=[1.0,1.0,1.0])
 
 print example.get_vals()
 example.execute(v='c')
 
-example_cat = example.read_cat()
-#for i in range(500,600):
-#	print example_cat[i]
+example_cat = example.read_cat(component=1)
+for i in range(0,len(example_cat)):
+	if i % 150 == 0:
+		print example_cat[i]
+print '-------------- FILTERED OUTPUT: --------\n'
+filtered = example.cat_filter(example_cat,component='a')
+for i in range(0,len(filtered)):
+	if i % 150 == 0:
+		print filtered[i]
 
 
 # EXAMPLE BLOCK
