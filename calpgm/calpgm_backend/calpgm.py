@@ -1,4 +1,4 @@
-#import calexcept
+5#import calexcept
 import datetime
 import math
 import subprocess
@@ -6,7 +6,7 @@ import os.path
 import os
 
 import numpy as np 
-import pandas as pn
+#import pandas as pn
 import time
 import struct
 import fileinput
@@ -485,11 +485,11 @@ class spcat(calpgm):
 							cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[61:64]),int(line[67:69]),int(line[69:71]),int(line[71:73]),int(line[73:75])])
 
 						# Writes 
-		if "pretty" in kwargs:
-			if kwargs['pretty'] == 1:
-				names = ['freq','uncert','inten','J_up',"Ka_up","Kc_up","J_down","Ka_down","Kc_down"]
-				df = pn.DataFrame(np.array(cat_file),columns=names)
-				return df
+		#if "pretty" in kwargs:
+			#if kwargs['pretty'] == 1:
+				#names = ['freq','uncert','inten','J_up',"Ka_up","Kc_up","J_down","Ka_down","Kc_down"]
+				#df = pn.DataFrame(np.array(cat_file),columns=names)
+				#return df
 
 		return cat_file
 
@@ -513,12 +513,12 @@ class spcat(calpgm):
 			flags['Kc_down_min'][1] = 9
 			flags['component'][1] = 11
 
-		try:
-			if isinstance(catfile,pn.DataFrame):
-				raise NotSupportedException('Author has been too lazy to implement Pandas support for cat_filter(). Make sure read_cat is not taking in pretty=1 as an argument.')
+	#	try:
+	#		if isinstance(catfile,pn.DataFrame):
+	#			raise NotSupportedException('Author has been too lazy to implement Pandas support for cat_filter(). Make sure read_cat is not taking in pretty=1 as an argument.')
 
-		except NotSupportedException as e: # Because I haven't figured out how to do filters on DataFrames. Will come soon!!!! 
-			self.error_message("NotSupportedException",e.value,2)
+	#	except NotSupportedException as e: # Because I haven't figured out how to do filters on DataFrames. Will come soon!!!! 
+	#		self.error_message("NotSupportedException",e.value,2)
 
 		temp_dict = {}
 		for key in flags: # Sets filter flags based on kwargs input
@@ -554,9 +554,8 @@ class spcat(calpgm):
 						if catfile[i][index] != temp_dict[key][2]:
 							filter_val = True
 					else:
-						for i in range(0,len(temp_dict[key][2])):
-							if not catfile[i][index] in temp_dict[key][2]:
-								filter_val = True
+						if not catfile[i][index] in temp_dict[key][2]:
+							filter_val = True
 						
 			if not filter_val:
 				output.append(catfile[i])
@@ -613,19 +612,19 @@ class spcat(calpgm):
 
 
 
-example = spcat(data='data',spin=1,dipoles=[1.0,1.0,1.0])
+example = spcat(data='data',spin=0,dipoles=[1.0,1.0,1.0])
 
 print example.get_vals()
 example.execute(v='c')
 
 example_cat = example.read_cat(component=1)
-for i in range(0,len(example_cat)):
-	if i % 150 == 0:
-		print example_cat[i]
+#for i in range(0,len(example_cat)):
+#	if i % 150 == 0:
+#		print example_cat[i]
 print '-------------- FILTERED OUTPUT: --------\n'
-filtered = example.cat_filter(example_cat,component='a')
+filtered = example.cat_filter(example_cat,component=['a','c'])
 for i in range(0,len(filtered)):
-	if i % 150 == 0:
+	if i % 1 == 0:
 		print filtered[i]
 
 
