@@ -1,9 +1,10 @@
-5#import calexcept
+#import calexcept
 import datetime
 import math
 import subprocess
 import os.path
 import os
+import decimal
 
 import numpy as np 
 #import pandas as pn
@@ -34,6 +35,13 @@ class NotSupportedException(Exception):
 		self.value = value
 	def __str__(self):
 		return rept(self.value)
+
+#   ______     ___       __      .______     _______ .___  ___. 
+#  /      |   /   \     |  |     |   _  \   /  _____||   \/   | 
+# |  ,----'  /  ^  \    |  |     |  |_)  | |  |  __  |  \  /  | 
+# |  |      /  /_\  \   |  |     |   ___/  |  | |_ | |  |\/|  | 
+# |  `----./  _____  \  |  `----.|  |      |  |__| | |  |  |  | 
+#  \______/__/     \__\ |_______|| _|       \______| |__|  |__|
 
 
 class calpgm(object):
@@ -123,6 +131,7 @@ class calpgm(object):
 	def get_init_vals(self):
 		return self.initial_vals
 
+
 	def error_message(self,errortype, message, severity=0):
 		print '\n\n=========== '+ str(errortype)+ 'ERROR AT: '+datetime.datetime.now().strftime("%a %b %d %I:%M:%S %Y")+'==========='
 		print ""
@@ -206,6 +215,18 @@ class calpgm(object):
 		except InitializeError as e: 
 			self.error_message("InitializeError",e.value,0)
 
+
+
+
+
+
+
+#      _______..______     ______      ___   .___________.
+#     /       ||   _  \   /      |    /   \  |           |
+#    |   (----`|  |_)  | |  ,----'   /  ^  \ `---|  |----`
+#     \   \    |   ___/  |  |       /  /_\  \    |  |     
+# .----)   |   |  |      |  `----. /  _____  \   |  |     
+# |_______/    | _|       \______|/__/     \__\  |__|    
 
 
 
@@ -609,23 +630,163 @@ class spcat(calpgm):
 		pass
 
 
+#      _______..______    _______  __  .___________.
+#     /       ||   _  \  |   ____||  | |           |
+#    |   (----`|  |_)  | |  |__   |  | `---|  |----`
+#     \   \    |   ___/  |   __|  |  |     |  |     
+# .----)   |   |  |      |  |     |  |     |  |     
+# |_______/    | _|      |__|     |__|     |__|   
+
+class spfit(calpgm):
+
+	linelist = []
+	fit_vars_cur = []
+	errors = [0.0,0.0]
+
+	def read_fit(self, **kwargs):
+
+		self.errors = [0.0,0.0]
+
+		# Booleans that will cut off reading of file once we get through final step of fit file
+
+		do_RMS = True
+		do_vars = False
+		do_lines = False
+
+		# Reverses parameter dictionary. This comprehension works in 2.7 and up, but will not work in any version of Python lower.
+		inv_params = {v:k for k,v in self.ALL_PARAMS.iteritems()}
+
+
+		# Iterate through fit file backwards!
+		for line in reversed(open('output.fit').readlines()):
+
+			if do_RMS == True:
+			# Check for microwave RMS (unitless)
+				if line.split()[0] == "END":
+					#print "Microwave RMS error: " + line.split()[8]
+					self.errors[0] = float(line.split()[8])
+
+				if line.split()[0] == 'MICROWAVE' and line.split()[1] == 'RMS':
+					#print 'Got here'
+					self.errors[1] = float(line.split()[3])
+					do_RMS = False
+					do_vars = True
+
+			is_param_line = False
+			# Pull parameters
+			if do_vars == True:
+				try:
+					float(line.split()[1])
+					is_param_line = True
+				except ValueError:
+					pass
+
+				if is_param_line:
+					if int(line.split()[1]) in inv_params:
+
+						# This will pull out the fit value of the parameter, sans error
+						temp_val = ""
+						temp_exponent = ""
+						temp_error = ""
+
+						temp_line = line.split()[3]+line.split()[4]
+						#print ""
+						#print temp_line
+
+						got_neg = False
+						got_val = False
+						got_error = False
+						got_exponent = False
+
+						for i,c in enumerate(temp_line):
+							if c == "-" and got_neg == False:
+								temp_val += c
+								got_neg = True
+
+							# get error
+							if c == "(" and not got_error:
+								got_val = True
+								k = i+1
+								while k < len(temp_line):
+									if temp_line[k] != ")":
+										temp_error += temp_line[k]
+										k += 1
+									if temp_line[k] == ")":
+										got_error = True
+										break
+
+							# get exponent, if there is one
+							if c == "E" and not got_exponent:
+								got_exponent = True
+								got_neg = True # In case val is positive, makes sure not to pull  negative from "change this iteration"
+
+								temp_exponent += temp_line[i+1:i+4]
+
+							elif not got_val:
+								if c == ".":
+									temp_val += c
+								try:
+										float(c)
+										temp_val += c
+								except ValueError:
+									pass
+							#print temp_val
+							if got_neg and got_exponent and got_error and got_val:
+								break
+					
 
 
 
-example = spcat(data='data',spin=0,dipoles=[1.0,1.0,1.0])
+						#temp_val = float(temp_val)
+						#print line.split()[2] + " / " + str(temp_val) + " /  " + temp_exponent + " / " + temp_error
 
-print example.get_vals()
-example.execute(v='c')
+						num_digits = decimal.Decimal(temp_val).as_tuple().exponent
+						#print num_digits
 
-example_cat = example.read_cat(component=1)
+						if not temp_exponent:
+							temp_exponent = "0"
+						#print 'Digits on parameter ' + line.split()[2] + " : " + str(num_digits)
+						temp_error = float(temp_error)*(10**(num_digits+int(temp_exponent)))
+						temp_error = round(temp_error, -1*num_digits+10)
+						temp_val = float(temp_val)*10**(int(temp_exponent))
+						temp_val = round(temp_val,-1*num_digits+10)
+
+
+						self.fit_vars_cur.append([line.split()[1],line.split()[2],float(temp_val),temp_error])
+						
+
+				if not is_param_line and line.split()[0] == 'NEW' and line.split()[1] == 'PARAMETER':
+					do_vars = False
+					do_lines = True
+
+
+
+
+				
+
+
+	def __init__(self,**kwargs):
+		self.read_fit()
+
+
+butt = spfit()
+for i in range(0,len(butt.fit_vars_cur)):
+	print butt.fit_vars_cur[i]
+
+#example = spcat(data='data',spin=0,dipoles=[1.0,1.0,1.0])
+
+#print example.get_vals()
+#example.execute(v='c')
+
+#example_cat = example.read_cat(component=1)
 #for i in range(0,len(example_cat)):
 #	if i % 150 == 0:
 #		print example_cat[i]
-print '-------------- FILTERED OUTPUT: --------\n'
-filtered = example.cat_filter(example_cat,component=['a','c'])
-for i in range(0,len(filtered)):
-	if i % 1 == 0:
-		print filtered[i]
+#print '-------------- FILTERED OUTPUT: --------\n'
+#filtered = example.cat_filter(example_cat,component=['a','c'])
+#for i in range(0,len(filtered)):
+#	if i % 1 == 0:
+#		print filtered[i]
 
 
 # EXAMPLE BLOCK
