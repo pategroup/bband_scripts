@@ -658,7 +658,7 @@ class spfit(calpgm):
 
 
 		# Iterate through fit file backwards!
-		for line in reversed(open('output.fit').readlines()):
+		for line in reversed(open('default.fit').readlines()):
 
 			if do_RMS == True:
 			# Check for microwave RMS (unitless)
@@ -682,12 +682,20 @@ class spfit(calpgm):
 					pass
 
 				if is_param_line:
+
 					if int(line.split()[1]) in inv_params:
 
 						# This will pull out the fit value of the parameter, sans error
 						temp_val = ""
 						temp_exponent = ""
 						temp_error = ""
+
+						to_print = ""
+						for i in range(0,len(line.split())):
+							to_print += "  /  " + line.split()[i]
+						print to_print 
+
+						print len(line.split())
 
 						temp_line = line.split()[3]+line.split()[4]
 						#print ""
@@ -699,12 +707,13 @@ class spfit(calpgm):
 						got_exponent = False
 
 						for i,c in enumerate(temp_line):
-							if c == "-" and got_neg == False:
+							if c == "-" and got_neg == False and i == 0:
 								temp_val += c
 								got_neg = True
 
 							# get error
 							if c == "(" and not got_error:
+								print 'End of value'
 								got_val = True
 								k = i+1
 								while k < len(temp_line):
@@ -722,26 +731,27 @@ class spfit(calpgm):
 
 								temp_exponent += temp_line[i+1:i+4]
 
+							if got_neg and got_error and got_val:
+								break
+
 							elif not got_val:
 								if c == ".":
 									temp_val += c
+
 								try:
+									if c != "-":
 										float(c)
 										temp_val += c
 								except ValueError:
 									pass
-							#print temp_val
-							if got_neg and got_exponent and got_error and got_val:
-								break
-					
-
+							print temp_val
 
 
 						#temp_val = float(temp_val)
 						#print line.split()[2] + " / " + str(temp_val) + " /  " + temp_exponent + " / " + temp_error
 
 						num_digits = decimal.Decimal(temp_val).as_tuple().exponent
-						#print num_digits
+						print num_digits
 
 						if not temp_exponent:
 							temp_exponent = "0"
@@ -768,6 +778,10 @@ class spfit(calpgm):
 	def __init__(self,**kwargs):
 		self.read_fit()
 
+
+#butt1 = spcat(data='data',spin=1,dipoles=[1.0,1.0,1.0])
+
+#butt1.execute(v='c')
 
 butt = spfit()
 for i in range(0,len(butt.fit_vars_cur)):
