@@ -11,6 +11,7 @@ import numpy as np
 import time
 import struct
 import fileinput
+from matplotlib import pyplot as pp
 
 class InitializeError(Exception):
 	def __init__(self,value):
@@ -99,6 +100,10 @@ class calpgm(object):
 			self.current_vals.append([])
 			self.current_vals[i].append(data[i][0])
 			self.current_vals[i].append(data[i][1])
+			try:
+				self.current_vals[i].append(data[i][2])
+			except IndexError:
+				self.current_vals[i].append("1.0E-010")
 
 			if data[i][0] == 'A':
 				self.current_vals_rigid[0] = float(data[i][1])
@@ -118,6 +123,10 @@ class calpgm(object):
 			output.append([])
 			output[i].append(line.split()[0])
 			output[i].append(line.split()[1])
+			try:
+				output[i].append(line.split()[2])
+			except IndexError:
+				output[i].append("1.0E-010")
 		#print output
 		return output
 
@@ -179,10 +188,10 @@ class calpgm(object):
 					self.dipoles = value
 
 				elif key == 'temp':
-					temp = value
+					self.temp = value
 
 				elif key == 'spin':
-					self.spin = self.spincalc(value)	
+					self.spin = self.spincalc(value)
 
 				elif key == 'reduction':
 					self.reduction = value
@@ -261,7 +270,7 @@ class spcat(calpgm):
 		for i in range(0, num_params):
 
 			key_value = str(self.ALL_PARAMS[self.current_vals[i][0]])
-			output += "          %s  %s  1.0E-010 /%s \n" %(str(key_value),str(self.current_vals[i][1]),str(self.current_vals[i][0]))
+			output += "          %s  %s  %s  /%s \n" %(str(key_value),str(self.current_vals[i][1]),str(self.current_vals[i][2]),str(self.current_vals[i][0]))
 
 		if self.init_var == "":
 			self.init_var = output
@@ -615,7 +624,60 @@ class spcat(calpgm):
 				if found:
 					return to_search[i]
 
-		#return 0
+
+	def predict_spec(self,catfile,**kwargs):
+		if 'min_freq' in kwargs:
+			min_freq = kwargs['min_freq']
+		else:
+			min_freq = 0.0
+
+		if 'max_freq' in kwargs:
+			max_freq = kwargs['max_freq']
+		else:
+			max_freq = self.max_freq
+
+		if 'linewidth' in kwargs:
+			linewidth = kwargs['linewidth']
+		else:
+			linewidth = 0.03
+
+		if 'step_size' in kwargs:
+			step_size = kwargs['step_size']
+		else:
+			step_size = 0.02
+
+
+		num_points = math.ceil((max_freq-min_freq)/step_size)
+
+		sp = np.column_stack((np.zeros(np.shape(range(0,int(num_points-1)))[0]),np.zeros(np.shape(range(0,int(num_points-1)))[0])))
+		sp_x = [example_cat[i][0] for i in range(0,len(example_cat))]
+		sp_y = [10**(example_cat[i][2]) for i in range(0,len(example_cat))]
+		spectrum = np.column_stack((sp_x,sp_y))
+
+		for n in range(0, int(num_points-1)):
+			sp[n,0] = min_freq + n*step_size
+			sp[n,1] = 0
+
+		for n in range(0, len(spectrum)-1):
+			if spectrum[n,0] < min_freq or spectrum[n,0] > max_freq:
+				continue 
+			else:
+				temp_int = spectrum[n,1]
+				temp_freq = spectrum[n,0]
+
+				sim_start = temp_freq - 4*linewidth
+				sim_stop = temp_freq + 4*linewidth
+
+				nstart = math.floor((sim_start-min_freq)/step_size)
+				nstop = math.floor((sim_stop-min_freq)/step_size)
+
+				for i in range(int(nstart),int(nstop)):
+					sp[i,1] = sp[i,1] + temp_int*math.exp((((sp[i,0]-temp_freq)/linewidth)**2)*(-1*math.log(2)))
+					sp[i,1] = np.real(sp[i,1])
+
+		return sp
+
+		
 
 
 	def __init__(self, **kwargs):
@@ -624,7 +686,9 @@ class spcat(calpgm):
 				pass
 		elif 'data' in kwargs:
 			if kwargs['data'] != "" and kwargs['data'] != None:
+				print 'Temp is: '+ str(kwargs['temp'])
 				super(spcat,self).__init__(**kwargs)
+				print 'Temp assigned is: '+ str(self.temp)
 				self.to_var()
 				self.to_int()
 		pass
@@ -637,7 +701,7 @@ class spcat(calpgm):
 # .----)   |   |  |      |  |     |  |     |  |     
 # |_______/    | _|      |__|     |__|     |__|   
 
-class spfit(calpgm):
+class spfit(spcat):
 
 	linelist = []
 	fit_vars_cur = []
@@ -658,7 +722,7 @@ class spfit(calpgm):
 
 
 		# Iterate through fit file backwards!
-		for line in reversed(open('default.fit').readlines()):
+		for line in reversed(open('output.fit').readlines()):
 
 			if do_RMS == True:
 			# Check for microwave RMS (unitless)
@@ -693,9 +757,9 @@ class spfit(calpgm):
 						to_print = ""
 						for i in range(0,len(line.split())):
 							to_print += "  /  " + line.split()[i]
-						print to_print 
+						#print to_print 
 
-						print len(line.split())
+						#print len(line.split())
 
 						temp_line = line.split()[3]+line.split()[4]
 						#print ""
@@ -713,7 +777,7 @@ class spfit(calpgm):
 
 							# get error
 							if c == "(" and not got_error:
-								print 'End of value'
+								#print 'End of value'
 								got_val = True
 								k = i+1
 								while k < len(temp_line):
@@ -727,7 +791,7 @@ class spfit(calpgm):
 							# get exponent, if there is one
 							if c == "E" and not got_exponent:
 								got_exponent = True
-								got_neg = True # In case val is positive, makes sure not to pull  negative from "change this iteration"
+								got_neg = True # In case val is positive, makes sure not to pull  negative from "change this iteration" column
 
 								temp_exponent += temp_line[i+1:i+4]
 
@@ -744,14 +808,14 @@ class spfit(calpgm):
 										temp_val += c
 								except ValueError:
 									pass
-							print temp_val
+							#print temp_val
 
 
 						#temp_val = float(temp_val)
 						#print line.split()[2] + " / " + str(temp_val) + " /  " + temp_exponent + " / " + temp_error
 
 						num_digits = decimal.Decimal(temp_val).as_tuple().exponent
-						print num_digits
+						#print num_digits
 
 						if not temp_exponent:
 							temp_exponent = "0"
@@ -765,27 +829,80 @@ class spfit(calpgm):
 						self.fit_vars_cur.append([line.split()[1],line.split()[2],float(temp_val),temp_error])
 						
 
+				# Let's do the linelist now!
+
+				# Make sure we're done reading the parameters		
 				if not is_param_line and line.split()[0] == 'NEW' and line.split()[1] == 'PARAMETER':
 					do_vars = False
-					do_lines = True
 
+			# Now we need to start reading lines
+			if  line.split()[0] == 'NORMALIZED':
+				print 'GOt here'
+				do_lines = True
 
+				# Linelist line is organized as so:
+				# #LINE: J K K J K K EXP_FREQ CALC_FREQ OMC <junk>
+				# #LINE is an int, so we gotta check and then cut off once we hit #LINE = 1
+			is_line = False
+			if do_lines:
+				try:
+					int(line.split()[0][:-1]) # line.split()[0] for a line is N: so we gotta kick off the : from the string
+					is_line = True
+				except ValueError:
+					pass
+				#self.spin = 1
+				print 'Spin is: '+ str(self.spin)
+				if is_line and self.spin == 1:
+					self.linelist.append([int(line.split()[1]),int(line.split()[2]), int(line.split()[3]),int(line.split()[4]),int(line.split()[5]),int(line.split()[6]),float(line.split()[7]),float(line.split()[8]),float(line.split()[9])])
+				if is_line and self.spin > 1:
+					self.linelist.append([int(line.split()[1]),int(line.split()[2]), int(line.split()[3]),int(line.split()[4]),int(line.split()[5]),int(line.split()[6]),int(line.split()[7]),int(line.split()[8]),float(line.split()[9]),float(line.split()[10]),float(line.split()[11])])
+					#print "J K K F UPPER: "+ line.split()[1] + " " + line.split()[2] + " " + line.split()[3] + line.split()[4] + " / J K K LOWER: "+ line.split()[5] + " " + line.split()[6] + " " + line.split()[7] + " " + line.split()[8] + " / EXP: " + line.split()[9] + " / PRED: " + line.split()[10] + " / OMC: " + line.split()[11]
 
-
-				
+			# Stops read_fit since we're done at this point.
+			if line.split()[0] == "EXP.FREQ.":
+				break 
+				#pass
 
 
 	def __init__(self,**kwargs):
+		# Seems to be the best way to ensure compatibility between SPCAT and SPFIT objects. 
+		if 'data' in kwargs:
+			super(spfit, self).__init__(**kwargs)
+
 		self.read_fit()
 
+		
 
-#butt1 = spcat(data='data',spin=1,dipoles=[1.0,1.0,1.0])
 
-#butt1.execute(v='c')
 
-butt = spfit()
-for i in range(0,len(butt.fit_vars_cur)):
-	print butt.fit_vars_cur[i]
+
+
+butt1 = spcat(data='data',spin=0,temp=0.5,dipoles=[1.8,1.2,0.2])
+butt1.execute(v='c')
+print butt1.get_int()
+example_cat = butt1.read_cat(component=1)
+
+#sp_x = [example_cat[i][0] for i in range(0,len(example_cat))]
+
+pred_spec = butt1.predict_spec(example_cat,min_freq=2000.0,max_freq=8000.0)
+
+#n = 0
+#for i in range(0,len(pred_spec)):
+#	if pred_spec[i,1] != 0.0 and n < 50:
+#		print pred_spec[i]
+#		n +=1
+
+
+pp.plot(pred_spec[:,0],pred_spec[:,1])
+pp.show()
+
+#butt = spfit(data='data',spin=0)
+#print ' ------------ FIT PARAMETERS ----------- '
+#for i in range(0,len(butt.fit_vars_cur)):
+#	print butt.fit_vars_cur[i]
+#print ' ------------ LINELIST ----------------'
+#for i in range(0,len(butt.linelist)):
+	#print butt.linelist[i]
 
 #example = spcat(data='data',spin=0,dipoles=[1.0,1.0,1.0])
 
@@ -793,9 +910,8 @@ for i in range(0,len(butt.fit_vars_cur)):
 #example.execute(v='c')
 
 #example_cat = example.read_cat(component=1)
-#for i in range(0,len(example_cat)):
-#	if i % 150 == 0:
-#		print example_cat[i]
+#for i in range(0,10):
+#	print sp_x[i]
 #print '-------------- FILTERED OUTPUT: --------\n'
 #filtered = example.cat_filter(example_cat,component=['a','c'])
 #for i in range(0,len(filtered)):
