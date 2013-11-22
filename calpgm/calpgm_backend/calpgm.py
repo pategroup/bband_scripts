@@ -5,7 +5,7 @@ import subprocess
 import os.path
 import os
 import decimal
-
+import random
 import numpy as np 
 #import pandas as pn
 import time
@@ -269,6 +269,7 @@ class spcat(calpgm):
 		output += "%s   %s  1  0  99  0  1  1  1  1  -1   0\n" %(self.reduction,str(self.spin))
 		for i in range(0, num_params):
 
+			print self.current_vals[i][0]
 			key_value = str(self.ALL_PARAMS[self.current_vals[i][0]])
 			output += "          %s  %s  %s  /%s \n" %(str(key_value),str(self.current_vals[i][1]),str(self.current_vals[i][2]),str(self.current_vals[i][0]))
 
@@ -290,6 +291,11 @@ class spcat(calpgm):
 		 if self.init_int == "":
 		 	self.init_int = output
 		 self.cur_int = output
+
+
+	def update(self): # Updates var/int in case a parameter is changed (e.g. temp)
+		self.to_var()
+		self.to_int()
 
 	def get_var(self): # Returns current var file string
 		return self.cur_var
@@ -634,7 +640,7 @@ class spcat(calpgm):
 		if 'max_freq' in kwargs:
 			max_freq = kwargs['max_freq']
 		else:
-			max_freq = self.max_freq
+			max_freq = self.max_freq*1000
 
 		if 'linewidth' in kwargs:
 			linewidth = kwargs['linewidth']
@@ -649,18 +655,27 @@ class spcat(calpgm):
 
 		num_points = math.ceil((max_freq-min_freq)/step_size)
 
-		sp = np.column_stack((np.zeros(np.shape(range(0,int(num_points-1)))[0]),np.zeros(np.shape(range(0,int(num_points-1)))[0])))
-		sp_x = [example_cat[i][0] for i in range(0,len(example_cat))]
-		sp_y = [10**(example_cat[i][2]) for i in range(0,len(example_cat))]
-		spectrum = np.column_stack((sp_x,sp_y))
+		spec_x = [catfile[i][0] for i in range(0,len(catfile))]
+		spec_y = [10**(catfile[i][2]) for i in range(0,len(catfile))]
+		spectrum = np.column_stack((spec_x,spec_y))
 
-		for n in range(0, int(num_points-1)):
-			sp[n,0] = min_freq + n*step_size
-			sp[n,1] = 0
+
+		
+		t1 = time.time()
+		#sp_x = 
+		sp = np.column_stack(([min_freq+n*step_size for n in range(0,int(num_points-1))],np.zeros(np.shape(range(0,int(num_points-1)))[0])))
+		#for n in range(0, int(num_points-1)):
+		#	sp[n,0] = min_freq + n*step_size
+		#	sp[n,1] = 0
+		t2 = time.time()
+		print 'Takes this long to build the spectrum inputs: ' + str(t2-t1)
 
 		for n in range(0, len(spectrum)-1):
-			if spectrum[n,0] < min_freq or spectrum[n,0] > max_freq:
+			if spectrum[n,0] < min_freq:
 				continue 
+			if spectrum[n,0] > max_freq:
+				break
+
 			else:
 				temp_int = spectrum[n,1]
 				temp_freq = spectrum[n,0]
@@ -686,9 +701,9 @@ class spcat(calpgm):
 				pass
 		elif 'data' in kwargs:
 			if kwargs['data'] != "" and kwargs['data'] != None:
-				print 'Temp is: '+ str(kwargs['temp'])
+				#print 'Temp is: '+ str(kwargs['temp'])
 				super(spcat,self).__init__(**kwargs)
-				print 'Temp assigned is: '+ str(self.temp)
+				#print 'Temp assigned is: '+ str(self.temp)
 				self.to_var()
 				self.to_int()
 		pass
@@ -872,51 +887,6 @@ class spfit(spcat):
 		self.read_fit()
 
 		
-
-
-
-
-
-butt1 = spcat(data='data',spin=0,temp=0.5,dipoles=[1.8,1.2,0.2])
-butt1.execute(v='c')
-print butt1.get_int()
-example_cat = butt1.read_cat(component=1)
-
-#sp_x = [example_cat[i][0] for i in range(0,len(example_cat))]
-
-pred_spec = butt1.predict_spec(example_cat,min_freq=2000.0,max_freq=8000.0)
-
-#n = 0
-#for i in range(0,len(pred_spec)):
-#	if pred_spec[i,1] != 0.0 and n < 50:
-#		print pred_spec[i]
-#		n +=1
-
-
-pp.plot(pred_spec[:,0],pred_spec[:,1])
-pp.show()
-
-#butt = spfit(data='data',spin=0)
-#print ' ------------ FIT PARAMETERS ----------- '
-#for i in range(0,len(butt.fit_vars_cur)):
-#	print butt.fit_vars_cur[i]
-#print ' ------------ LINELIST ----------------'
-#for i in range(0,len(butt.linelist)):
-	#print butt.linelist[i]
-
-#example = spcat(data='data',spin=0,dipoles=[1.0,1.0,1.0])
-
-#print example.get_vals()
-#example.execute(v='c')
-
-#example_cat = example.read_cat(component=1)
-#for i in range(0,10):
-#	print sp_x[i]
-#print '-------------- FILTERED OUTPUT: --------\n'
-#filtered = example.cat_filter(example_cat,component=['a','c'])
-#for i in range(0,len(filtered)):
-#	if i % 1 == 0:
-#		print filtered[i]
 
 
 # EXAMPLE BLOCK
