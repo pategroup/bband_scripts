@@ -66,18 +66,6 @@ class calpgm(object):
 
 
 	# PARAMETERS
-	name = "molecule"
-	filename = "default"
-	max_freq = 20.0
-	dipoles = [1.0,1.0,1.0]
-	temp = 2
-	spin = 0
-	reduction = 'a'
-	J_min = 0
-	J_max = 20
-	inten = -10.0
-	temp = 2.0
-
 
 	# Containers for rotational constants, etc
 	initial_vals = []
@@ -166,6 +154,19 @@ class calpgm(object):
 	# - J_min/J_max : min/max J for predictions (0/20 default)
 	# - inten: intensity cutoff (log strength, default -10.0)
 	def __init__(self,**kwargs):
+
+		self.name = "molecule"
+		self.filename = "default"
+		self.max_freq = 20.0
+		self.dipoles = [1.0,1.0,1.0]
+		self.temp = 2
+		self.spin = 0
+		self.reduction = 'a'
+		self.J_min = 0
+		self.J_max = 20
+		self.inten = -10.0
+		self.temp = 2.0
+
 		print 'CALPGM constructor initialized\n'
 		#self.spin = self.spincalc(self.spin)
 		try:
@@ -240,15 +241,6 @@ class calpgm(object):
 
 
 class spcat(calpgm):
-
-	init_var = ""
-	init_int = ""
-
-	cur_var = ""
-	cur_int = ""
-
-
-	pfunc = 1.0 # Partition function for the object stored as a float
 
 	def qrotcalc(self):
 	# Calculates pure, low-temp-approx rotational partition function
@@ -655,9 +647,7 @@ class spcat(calpgm):
 
 		num_points = math.ceil((max_freq-min_freq)/step_size)
 
-		spec_x = [catfile[i][0] for i in range(0,len(catfile))]
-		spec_y = [10**(catfile[i][2]) for i in range(0,len(catfile))]
-		spectrum = np.column_stack((spec_x,spec_y))
+		spectrum = np.column_stack(([catfile[i][0] for i in range(0,len(catfile))],[10**(catfile[i][2]) for i in range(0,len(catfile))]))
 
 
 		
@@ -696,14 +686,20 @@ class spcat(calpgm):
 
 
 	def __init__(self, **kwargs):
-		if 'norun' in kwargs:
-			if kwargs['norun'] == 1:
-				pass
-		elif 'data' in kwargs:
+
+		self.init_var = ""
+		self.init_int = ""
+
+		self.cur_var = ""
+		self.cur_int = ""
+
+
+		self.pfunc = 1.0 # Partition function for the object stored as a float
+
+
+		super(spcat,self).__init__(**kwargs)
+		if 'data' in kwargs:
 			if kwargs['data'] != "" and kwargs['data'] != None:
-				#print 'Temp is: '+ str(kwargs['temp'])
-				super(spcat,self).__init__(**kwargs)
-				#print 'Temp assigned is: '+ str(self.temp)
 				self.to_var()
 				self.to_int()
 		pass
@@ -716,13 +712,11 @@ class spcat(calpgm):
 # .----)   |   |  |      |  |     |  |     |  |     
 # |_______/    | _|      |__|     |__|     |__|   
 
+
 class spfit(spcat):
 
-	linelist = []
-	fit_vars_cur = []
-	errors = [0.0,0.0]
 
-	def read_fit(self, **kwargs):
+	def read_fit(self, filename, **kwargs):
 
 		self.errors = [0.0,0.0]
 
@@ -737,7 +731,8 @@ class spfit(spcat):
 
 
 		# Iterate through fit file backwards!
-		for line in reversed(open('output.fit').readlines()):
+		for line in reversed(open(filename).readlines()):
+			#print line
 
 			if do_RMS == True:
 			# Check for microwave RMS (unitless)
@@ -769,16 +764,9 @@ class spfit(spcat):
 						temp_exponent = ""
 						temp_error = ""
 
-						to_print = ""
-						for i in range(0,len(line.split())):
-							to_print += "  /  " + line.split()[i]
-						#print to_print 
-
-						#print len(line.split())
-
-						temp_line = line.split()[3]+line.split()[4]
-						#print ""
-						#print temp_line
+						temp_line = ""
+						for i in range(2,len(line.split())-1):
+							temp_line += line.split()[i]
 
 						got_neg = False
 						got_val = False
@@ -792,7 +780,6 @@ class spfit(spcat):
 
 							# get error
 							if c == "(" and not got_error:
-								#print 'End of value'
 								got_val = True
 								k = i+1
 								while k < len(temp_line):
@@ -801,17 +788,14 @@ class spfit(spcat):
 										k += 1
 									if temp_line[k] == ")":
 										got_error = True
-										break
+										k = len(temp_line)+1
 
 							# get exponent, if there is one
 							if c == "E" and not got_exponent:
 								got_exponent = True
 								got_neg = True # In case val is positive, makes sure not to pull  negative from "change this iteration" column
-
 								temp_exponent += temp_line[i+1:i+4]
 
-							if got_neg and got_error and got_val:
-								break
 
 							elif not got_val:
 								if c == ".":
@@ -823,25 +807,23 @@ class spfit(spcat):
 										temp_val += c
 								except ValueError:
 									pass
-							#print temp_val
+
+							#elif got_neg and got_error and got_val:
+							#	break
 
 
-						#temp_val = float(temp_val)
-						#print line.split()[2] + " / " + str(temp_val) + " /  " + temp_exponent + " / " + temp_error
 
 						num_digits = decimal.Decimal(temp_val).as_tuple().exponent
-						#print num_digits
 
 						if not temp_exponent:
 							temp_exponent = "0"
-						#print 'Digits on parameter ' + line.split()[2] + " : " + str(num_digits)
 						temp_error = float(temp_error)*(10**(num_digits+int(temp_exponent)))
 						temp_error = round(temp_error, -1*num_digits+10)
 						temp_val = float(temp_val)*10**(int(temp_exponent))
 						temp_val = round(temp_val,-1*num_digits+10)
 
 
-						self.fit_vars_cur.append([line.split()[1],line.split()[2],float(temp_val),temp_error])
+						self.fit_vars_cur.append([line.split()[1],float(temp_val),temp_error])
 						
 
 				# Let's do the linelist now!
@@ -852,7 +834,7 @@ class spfit(spcat):
 
 			# Now we need to start reading lines
 			if  line.split()[0] == 'NORMALIZED':
-				print 'GOt here'
+				#print 'GOt here'
 				do_lines = True
 
 				# Linelist line is organized as so:
@@ -866,7 +848,7 @@ class spfit(spcat):
 				except ValueError:
 					pass
 				#self.spin = 1
-				print 'Spin is: '+ str(self.spin)
+				#print 'Spin is: '+ str(self.spin)
 				if is_line and self.spin == 1:
 					self.linelist.append([int(line.split()[1]),int(line.split()[2]), int(line.split()[3]),int(line.split()[4]),int(line.split()[5]),int(line.split()[6]),float(line.split()[7]),float(line.split()[8]),float(line.split()[9])])
 				if is_line and self.spin > 1:
@@ -878,13 +860,17 @@ class spfit(spcat):
 				break 
 				#pass
 
+		return self.fit_vars_cur
 
 	def __init__(self,**kwargs):
-		# Seems to be the best way to ensure compatibility between SPCAT and SPFIT objects. 
-		if 'data' in kwargs:
-			super(spfit, self).__init__(**kwargs)
+		self.linelist = []
+		self.fit_vars_cur = []
+		self.errors = [0.0,0.0]
+		self.spin = 0
 
-		self.read_fit()
+		super(spfit, self).__init__(**kwargs)
+
+		#self.read_fit()
 
 		
 
