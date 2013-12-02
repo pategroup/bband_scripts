@@ -511,7 +511,7 @@ class spcat(calpgm):
 								cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[61:64]),int(line[67:69]),int(line[69:71]),int(line[71:73]),int(line[73:75]),'c'])
 						else:
 							cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[61:64]),int(line[67:69]),int(line[69:71]),int(line[71:73]),int(line[73:75])])
-
+		f.close()
 						# Writes 
 		#if "pretty" in kwargs:
 			#if kwargs['pretty'] == 1:
