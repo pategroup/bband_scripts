@@ -160,7 +160,7 @@ class calpgm(object):
 		self.max_freq = 20.0
 		self.dipoles = [1.0,1.0,1.0]
 		self.temp = 2
-		self.spin = 0
+		self.spin = 1
 		self.reduction = 'a'
 		self.J_min = 0
 		self.J_max = 20
@@ -488,13 +488,13 @@ class spcat(calpgm):
 					if self.spin == 1:
 						if 'component' in kwargs and kwargs['component'] == 1:
 							if (int(line[57:59])-int(line[69:71])) % 2 == 0 and (int(line[59:61])-int(line[71:73])) % 2 == 1:
-								cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[67:69]),int(line[69:71]),int(line[71:73]),'a'])
+								cat_file.append([float(line[2:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[67:69]),int(line[69:71]),int(line[71:73]),'a'])
 
 							if (int(line[57:59])-int(line[69:71])) % 2 == 1 and (int(line[59:61])-int(line[71:73])) % 2 == 1:
-								cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[67:69]),int(line[69:71]),int(line[71:73]),'b'])
+								cat_file.append([float(line[2:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[67:69]),int(line[69:71]),int(line[71:73]),'b'])
 
 							if (int(line[57:59])-int(line[69:71])) % 2 == 1 and (int(line[59:61])-int(line[71:73])) % 2 == 0:
-								cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[67:69]),int(line[69:71]),int(line[71:73]),'c'])
+								cat_file.append([float(line[2:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[67:69]),int(line[69:71]),int(line[71:73]),'c'])
 
 						else:
 							cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[67:69]),int(line[69:71]),int(line[71:73])])
@@ -511,8 +511,9 @@ class spcat(calpgm):
 								cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[61:64]),int(line[67:69]),int(line[69:71]),int(line[71:73]),int(line[73:75]),'c'])
 						else:
 							cat_file.append([float(line[3:13]),float(line[13:21]),float(line[22:29]),int(line[55:57]),int(line[57:59]),int(line[59:61]),int(line[61:64]),int(line[67:69]),int(line[69:71]),int(line[71:73]),int(line[73:75])])
-		f.close()
+
 						# Writes 
+		f.close()
 		#if "pretty" in kwargs:
 			#if kwargs['pretty'] == 1:
 				#names = ['freq','uncert','inten','J_up',"Ka_up","Kc_up","J_down","Ka_down","Kc_down"]
@@ -529,9 +530,9 @@ class spcat(calpgm):
 	# Since a "cat file" is not a variable of the spcat() object, you will need to supply it a cat_file object, e.g. from read_cat(). It will
 	# accept the list of lists format (pretty=0, default), but at the moment NOT the Pandas output (the author hasn't quite figured out how to do this yet!!!)
 
-
+		print kwargs
 	# Flags are stored in the dictionary below, and have a three member list, flag[i,j,k,l]; i = 0/1 (on/off), j = corresponding column in catfile, k = inputted filter value, l = 1/-1 (-1 if lower bound, 1 if upper bound -- for boolean filters)
-		flags = {'freq_up':[0,0,0.0,1],'freq_min':[0,0,0.0,-1], 'J_max':[0,3,0,1],'J_min':[0,3,0,-1],'min_inten':[0,2,0.0,-1],'max_inten':[0,2,0.0,1],'uncert':[0,1,0.0,1],'Ka_up_max':[0,4,0,1],'Ka_up_min':[0,4,0,-1],'Ka_down_max':[0,7,0,1],'Ka_down_min':[0,7,0,-1],'Kc_up_max':[0,5,0,1],'Kc_down_max':[0,8,0,1],'Kc_up_min':[0,5,0,-1],'Kc_down_min':[0,8,0,-1], 'component':[0,9,0,0]}
+		flags = {'freq_max':[0,0,0.0,1],'freq_min':[0,0,0.0,-1], 'J_max':[0,3,0,1],'J_min':[0,3,0,-1],'min_inten':[0,2,0.0,-1],'max_inten':[0,2,0.0,1],'uncert':[0,1,0.0,1],'Ka_up_max':[0,4,0,1],'Ka_up_min':[0,4,0,-1],'Ka_down_max':[0,7,0,1],'Ka_down_min':[0,7,0,-1],'Kc_up_max':[0,5,0,1],'Kc_down_max':[0,8,0,1],'Kc_up_min':[0,5,0,-1],'Kc_down_min':[0,8,0,-1], 'component':[0,9,0,0]}
 		
 		# Shifts Ka/Kc labels due to addition of F quantum numbers
 		if self.spin != 1:
@@ -651,14 +652,14 @@ class spcat(calpgm):
 
 
 		
-		t1 = time.time()
+		#t1 = time.time()
 		#sp_x = 
 		sp = np.column_stack(([min_freq+n*step_size for n in range(0,int(num_points-1))],np.zeros(np.shape(range(0,int(num_points-1)))[0])))
 		#for n in range(0, int(num_points-1)):
 		#	sp[n,0] = min_freq + n*step_size
 		#	sp[n,1] = 0
-		t2 = time.time()
-		print 'Takes this long to build the spectrum inputs: ' + str(t2-t1)
+		#t2 = time.time()
+		#print 'Takes this long to build the spectrum inputs: ' + str(t2-t1)
 
 		for n in range(0, len(spectrum)-1):
 			if spectrum[n,0] < min_freq:
@@ -714,7 +715,6 @@ class spcat(calpgm):
 
 
 class spfit(spcat):
-
 
 	def read_fit(self, filename, **kwargs):
 
@@ -850,9 +850,9 @@ class spfit(spcat):
 				#self.spin = 1
 				#print 'Spin is: '+ str(self.spin)
 				if is_line and self.spin == 1:
-					self.linelist.append([int(line.split()[1]),int(line.split()[2]), int(line.split()[3]),int(line.split()[4]),int(line.split()[5]),int(line.split()[6]),float(line.split()[7]),float(line.split()[8]),float(line.split()[9])])
+					self.fit_linelist.append([int(line.split()[1]),int(line.split()[2]), int(line.split()[3]),int(line.split()[4]),int(line.split()[5]),int(line.split()[6]),float(line.split()[7]),float(line.split()[8]),float(line.split()[9])])
 				if is_line and self.spin > 1:
-					self.linelist.append([int(line.split()[1]),int(line.split()[2]), int(line.split()[3]),int(line.split()[4]),int(line.split()[5]),int(line.split()[6]),int(line.split()[7]),int(line.split()[8]),float(line.split()[9]),float(line.split()[10]),float(line.split()[11])])
+					self.fit_linelist.append([int(line.split()[1]),int(line.split()[2]), int(line.split()[3]),int(line.split()[4]),int(line.split()[5]),int(line.split()[6]),int(line.split()[7]),int(line.split()[8]),float(line.split()[9]),float(line.split()[10]),float(line.split()[11])])
 					#print "J K K F UPPER: "+ line.split()[1] + " " + line.split()[2] + " " + line.split()[3] + line.split()[4] + " / J K K LOWER: "+ line.split()[5] + " " + line.split()[6] + " " + line.split()[7] + " " + line.split()[8] + " / EXP: " + line.split()[9] + " / PRED: " + line.split()[10] + " / OMC: " + line.split()[11]
 
 			# Stops read_fit since we're done at this point.
@@ -862,11 +862,67 @@ class spfit(spcat):
 
 		return self.fit_vars_cur
 
+	# A line in linelist will have the following notation:
+	# J' K+' K-' J'' K+'' K-'' freq line_uncert 1.0  (for non-quad)
+	# J' K+' K-' F' J'' K+'' K-'' F'' freq line_uncert 1.0 (for quad)
+	# --------------
+	# This function will just generate a linelist from a list of lists. Input will be as follows:
+	# [[J',K+',K-',J'',K+'',K-'',freq],...] (or if quad, there will be F QNs after each K- value)
+	#
+	# available arguments:
+	# linelist: list of lists with the above notation
+	# line_uncert: will default to 50 kHz. Use argument uncert=val (in MHz) to override.
+	def to_lin(self,lines,**kwargs):
+
+		# Set line uncertainty
+		if 'uncert' in kwargs:
+			self.line_uncert = float(kwargs['uncert'])
+
+		# check to make sure linelist is not empty
+		try:
+			if not lines:
+				raise IdiotCheck('Linelist is empty!')
+			else:
+				for entry in lines:
+					if self.spin == 1:
+						self.linelist.append([int(entry[0]),int(entry[1]),int(entry[2]),int(entry[3]),int(entry[4]),int(entry[5]),float(entry[6])])
+					elif self.spin != 1:
+						self.linelist.append([int(entry[0]),int(entry[1]),int(entry[2]),int(entry[3]),int(entry[4]),int(entry[5]),int(entry[6]),int(entry[7]),float(entry[8])])
+
+		except IdiotCheck as e:
+			self.error_message("IdiotCheck",e.value,0)
+
+	# writes a LIN file for SPFIT to use
+	def to_file(self,**kwargs):
+
+		# Just to avoid issues with polymorphism here
+		if 'type' in kwargs:
+			if kwargs['type'] == 'var' or kwargs['type'] == 'int':
+				super.to_file(**kwargs)
+
+		if not self.linelist:
+			return 0
+
+		else:
+			f = open(str(self.filename)+".lin",'wb')
+			fmt = "%3s%3s%3s%3s%3s%3s%3s%3s%3s%3s%3s%3s%17s%13s%10s"
+			for entry in self.linelist:
+				if self.spin == 1:
+					f.write(fmt %(str(entry[0]),str(entry[1]),str(entry[2]),str(entry[3]),str(entry[4]),str(entry[5]),"0","0","0","0","0","0",str(entry[6]),str(self.line_uncert),"1.00000"))
+					f.write("\n")
+				elif self.spin != 1:
+					f.write(fmt %(str(entry[0]),str(entry[1]),str(entry[2]),str(entry[3]),str(entry[4]),str(entry[5]),str(entry[6]),str(entry[7]),"0","0","0","0",str(entry[8]),str(self.line_uncert),"1.00000"))
+					f.write("\n")
+			f.close()
+
+
+
 	def __init__(self,**kwargs):
 		self.linelist = []
+		self.line_uncert = 0.050
+		self.fit_linelist = []
 		self.fit_vars_cur = []
 		self.errors = [0.0,0.0]
-		self.spin = 0
 
 		super(spfit, self).__init__(**kwargs)
 
